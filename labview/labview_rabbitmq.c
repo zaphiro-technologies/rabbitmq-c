@@ -10,8 +10,8 @@
 
 LABVIEW_PUBLIC_FUNCTION
 char lv_rabbitmq_version(void) {
-	char version = "0.0.1";
-	return version;
+	char VERSION = "0.0.1";
+	return VERSION;
 }
 
 
@@ -20,6 +20,57 @@ struct lv_timeval {
 	long    tv_sec;
 	long	tv_usec;
 };
+
+/* This function is a modified version of the `die_on_amqp_error` function used in examples,
+enhanced with LabVIEW string support.*/
+LABVIEW_PUBLIC_FUNCTION
+int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, char *labview_error_string) {
+
+	const int SIZE_OF_LABVIEW_CREATED_ERROR_STRING = 100;
+
+	//Check if the string is the correct size
+	char buffer[SIZE_OF_LABVIEW_CREATED_ERROR_STRING];
+	if (strlen(labview_error_string) != SIZE_OF_LABVIEW_CREATED_ERROR_STRING) {
+		return 999;
+	}
+
+	switch (x.reply_type) {
+		case AMQP_RESPONSE_NORMAL:
+			return 1;
+
+		case AMQP_RESPONSE_NONE:
+			sprintf(labview_error_string, "%s: missing RPC reply type!\n", context);
+			return 2;
+
+		case AMQP_RESPONSE_LIBRARY_EXCEPTION:
+			sprintf(labview_error_string, "%s: %s\n", context, amqp_error_string2(x.library_error));
+			return 3;
+
+		case AMQP_RESPONSE_SERVER_EXCEPTION:
+		switch (x.reply.id) {
+			case AMQP_CONNECTION_CLOSE_METHOD: {
+			amqp_connection_close_t *m =
+				(amqp_connection_close_t *)x.reply.decoded;
+			sprintf(labview_error_string, "%s: server connection error %uh, message: %.*s\n",
+					context, m->reply_code, (int)m->reply_text.len,
+					(char *)m->reply_text.bytes);
+			return 4;
+			}
+			case AMQP_CHANNEL_CLOSE_METHOD: {
+			amqp_channel_close_t *m = (amqp_channel_close_t *)x.reply.decoded;
+			sprintf(labview_error_string, "%s: server channel error %uh, message: %.*s\n",
+					context, m->reply_code, (int)m->reply_text.len,
+					(char *)m->reply_text.bytes);
+			return 5;
+			}
+			default:
+			sprintf(labview_error_string, "%s: unknown server error, method id 0x%08X\n",
+					context, x.reply.id);
+			return 6;
+		}
+		break;
+	}
+}
 
 
 int lv_die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
