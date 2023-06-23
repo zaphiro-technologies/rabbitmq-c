@@ -171,44 +171,42 @@ struct amqp_connection_state_t* lv_int_to_pointer(int *conn_int) {
 }
 
 
-//Reviewed
+//Fixed
 LABVIEW_PUBLIC_FUNCTION
-void* lv_amqp_new_connction() {
-	// TO DO: incorrect vaiable assigement
-	/* The amqp_new_connection() function returns a pointer to
-	 a new amqp_connection_state_t struct, so it should be:
-	 amqp_connection_state_t *conn; */
-	amqp_connection_state_t conn;
-	conn = amqp_new_connection();
-	return conn; //LabVIEW will receive it as Int64
+int64_t lv_amqp_new_connection() {
+	// conn is an opaque struct pointer
+	amqp_connection_state_t conn = amqp_new_connection();
+	// cast to int64_t so LabVIEW will receive it as 
+	// a 64-bit integer transfered by value
+	int64_t conn_intptr = (int64_t)conn;
+	return conn_intptr; 
 }
 
 
+
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_close_connection(int *conn_int) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
-	int r = lv_die_on_amqp_error(amqp_connection_close(*x, AMQP_REPLY_SUCCESS),"Connection close");
+int lv_amqp_close_connection(int64_t conn_intptr) {
+	// cast back to amqp_connection_state_t opaque struct pointer
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+	int r = lv_die_on_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS),"Connection close");
 	return r;
 }
 
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_destroy_connection(int *conn_int) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
-	amqp_destroy_connection(*x);
+void lv_amqp_destroy_connection(int64_t conn_intptr) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+	amqp_destroy_connection(conn);
 }
 
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_channel_open(int *conn_int) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
-	amqp_channel_open(*x, 1);
+void lv_amqp_channel_open(int64_t conn_intptr) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+	amqp_channel_open(conn, 1);
 }
 // TO DO: channel is set constant to 1, should be a parameter
 // TO DO: add amqp_get_rpc_reply function
@@ -219,10 +217,9 @@ so it should be integrated into this function*/
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_channel_close(int *conn_int) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
-	int r = lv_die_on_amqp_error(amqp_channel_close(*x, 1, AMQP_REPLY_SUCCESS), "Closing channel");
+int lv_amqp_channel_close(int64_t conn_intptr) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+	int r = lv_die_on_amqp_error(amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
 	return r;
 }
 // TO DO: channel is set constant to 1, should be a parameter
@@ -230,20 +227,18 @@ int lv_amqp_channel_close(int *conn_int) {
 
 // This functions should be removed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_get_rpc_reply(int *conn_int, char *operation) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
-        int r =	lv_die_on_amqp_error(amqp_get_rpc_reply(*x), "aaa");
+int lv_amqp_get_rpc_reply(int64_t conn_intptr, char *operation) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+        int r =	lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "aaa");
        return r;
 }
 
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_exchange_declare(int *conn_int, char *exchange, char *exchangetype ) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
-	amqp_exchange_declare(*x, 1, amqp_cstring_bytes(exchange),
+int lv_amqp_exchange_declare(int64_t conn_intptr, char *exchange, char *exchangetype ) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+	amqp_exchange_declare(conn, 1, amqp_cstring_bytes(exchange),
 		amqp_cstring_bytes(exchangetype), 0, 0, 0, 0,
 		amqp_empty_table);
         return 1;
@@ -262,18 +257,13 @@ char *name(char *res) {
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_login(int *conn_int, char *host, int port, char *username, char *password, char *des) {
+void lv_amqp_login(int64_t conn_intptr, char *host, int port, char *username, char *password, char *des) {
 
-	// TO DO: check the type
-	/* the lv_amqp_new_connction returns a void pointer that is 
-	stored as Int64 in LabVIEW, this is not coherent with 
-	*conn_int input for this function */
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 
 	int status;
 	amqp_socket_t *socket = NULL;
-	socket = amqp_tcp_socket_new(*x);
+	socket = amqp_tcp_socket_new(conn);
 	// TO DO: if socket is NULL, LabVIEW will crash
 	status = amqp_socket_open(socket, host, port);
 	// TO DO: if status is not 0, LabVIEW will crash
@@ -282,7 +272,7 @@ void lv_amqp_login(int *conn_int, char *host, int port, char *username, char *pa
 	it will be destroyed along with connection state destroy function*/  
 
 	char *r;
-	r = lv_die_on_amqp_error2(amqp_login(*x, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN,
+	r = lv_die_on_amqp_error2(amqp_login(conn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN,
 		username, password),
 		"Logging in", "");
 	//char *char_temp = "1";
@@ -304,14 +294,13 @@ void lv_amqp_login(int *conn_int, char *host, int port, char *username, char *pa
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_basic_publish(int *conn_int, char *exchange, char *routingkey, char *messagebody) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
+void lv_amqp_basic_publish(int64_t conn_intptr, char *exchange, char *routingkey, char *messagebody) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 	amqp_basic_properties_t props;
 	props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
 	props.content_type = amqp_cstring_bytes("text/plain");
 	props.delivery_mode = 2; /* persistent delivery mode */
-	die_on_error(amqp_basic_publish(*x, 1, amqp_cstring_bytes(exchange),
+	die_on_error(amqp_basic_publish(conn, 1, amqp_cstring_bytes(exchange),
 		amqp_cstring_bytes(routingkey), 0, 0,
 		&props, amqp_cstring_bytes(messagebody)),
 		"Publishing");
@@ -327,14 +316,13 @@ void lv_amqp_basic_publish(int *conn_int, char *exchange, char *routingkey, char
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_consume_message1(int *conn_int, char *exchange, char *bindingkey) {
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
+int lv_amqp_consume_message1(int64_t conn_intptr, char *exchange, char *bindingkey) {
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 
         
 	amqp_queue_declare_ok_t *r = amqp_queue_declare(
-		*x, 1, amqp_empty_bytes, 0, 0, 0, 1, amqp_empty_table);
-        int a =	lv_die_on_amqp_error(amqp_get_rpc_reply(*x), "Declaring queue");
+		conn, 1, amqp_empty_bytes, 0, 0, 0, 1, amqp_empty_table);
+        int a =	lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "Declaring queue");
 	// TO DO: if error - > retrun it
 	queuename = amqp_bytes_malloc_dup(r->queue);
 	if (queuename.bytes == NULL) {
@@ -345,15 +333,15 @@ int lv_amqp_consume_message1(int *conn_int, char *exchange, char *bindingkey) {
 	}
 
 
-	amqp_queue_bind(*x, 1, queuename, amqp_cstring_bytes(exchange),
+	amqp_queue_bind(conn, 1, queuename, amqp_cstring_bytes(exchange),
 		amqp_cstring_bytes(bindingkey), amqp_empty_table);
-	int b = lv_die_on_amqp_error(amqp_get_rpc_reply(*x), "Binding queue");
+	int b = lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "Binding queue");
 	// TO DO: if error - > retrun it
-	amqp_basic_consume(*x, 1, queuename, amqp_empty_bytes, 0, 1, 0,
+	amqp_basic_consume(conn, 1, queuename, amqp_empty_bytes, 0, 1, 0,
 		amqp_empty_table);
 	/* amqp_basic_consume is used to register a consumer on the queue,
 	 so that the broker will start delivering messages to it.*/
-	int c = lv_die_on_amqp_error(amqp_get_rpc_reply(*x), "Consuming");
+	int c = lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "Consuming");
 
         return 1;
 }
@@ -362,13 +350,11 @@ int lv_amqp_consume_message1(int *conn_int, char *exchange, char *bindingkey) {
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-char *lv_amqp_consume_message2(int *conn_int, int *e, int *number, char *des) {
+char *lv_amqp_consume_message2(int64_t conn_intptr, int *e, int *number, char *des) {
 	
-
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
          
         char  *aaa;
-	amqp_connection_state_t *x;
-	x = (amqp_connection_state_t*)conn_int;
 
 	struct lv_timeval lv_timeval1;
 	lv_timeval1.tv_sec = 0;
@@ -376,8 +362,8 @@ char *lv_amqp_consume_message2(int *conn_int, int *e, int *number, char *des) {
 
 		amqp_rpc_reply_t res;
 		amqp_envelope_t envelope;
-		amqp_maybe_release_buffers(*x);
-		res = amqp_consume_message(*x, &envelope, &lv_timeval1, 0);
+		amqp_maybe_release_buffers(conn);
+		res = amqp_consume_message(conn, &envelope, &lv_timeval1, 0);
 
 		if (envelope.message.body.len > 0) {
 			//TO DO: no idea what is this
