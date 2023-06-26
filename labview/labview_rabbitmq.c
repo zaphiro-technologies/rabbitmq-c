@@ -7,6 +7,28 @@
 #include "extcode.h"
 #include "labview_rabbitmq.h"
 
+enum ERROR_CODE {
+    RED,
+    GREEN,
+    BLUE
+};
+
+typedef enum error_code_enum_ {
+	// Following codes are copied from amqp_response_type_enum_ and are used by 
+	// the lv_report_amqp_error function only. 
+  	_AMQP_RESPONSE_NONE = 0, /**< the library got an EOF from the socket */
+  	_AMQP_RESPONSE_NORMAL, /**< response normal, the RPC completed successfully */
+  	_AMQP_RESPONSE_LIBRARY_EXCEPTION, /**< library error, an error occurred in the
+                                      library, examine the library_error */
+  	_AMQP_RESPONSE_SERVER_EXCEPTION,   /**< server exception, the broker returned an
+                                      error, check replay */
+
+	// Next error codes are custom for this library	
+	_LABVIEW_ERROR_STR_LENGHT, /**< LabVIEW provided error string is not the correct lenght */
+	_CREATING_TCP_SOCKET, /**< Creating TCP socked failed */
+	_OPENING_TCP_SOCKET /**< Openning TCP socked failed */
+									   
+}
 
 LABVIEW_PUBLIC_FUNCTION
 char lv_rabbitmq_version(void) {
@@ -31,20 +53,20 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, char *labview_
 	//Check if the string is the correct size
 	char buffer[SIZE_OF_LABVIEW_CREATED_ERROR_STRING];
 	if (strlen(labview_error_string) != SIZE_OF_LABVIEW_CREATED_ERROR_STRING) {
-		return 999;
+		return _LABVIEW_ERROR_STR_LENGHT;
 	}
 
 	switch (x.reply_type) {
 		case AMQP_RESPONSE_NORMAL:
-			return 1;
+			return _AMQP_RESPONSE_NORMAL;
 
 		case AMQP_RESPONSE_NONE:
 			sprintf(labview_error_string, "%s: missing RPC reply type!\n", context);
-			return 2;
+			return _AMQP_RESPONSE_NONE;
 
 		case AMQP_RESPONSE_LIBRARY_EXCEPTION:
 			sprintf(labview_error_string, "%s: %s\n", context, amqp_error_string2(x.library_error));
-			return 3;
+			return _AMQP_RESPONSE_LIBRARY_EXCEPTION;
 
 		case AMQP_RESPONSE_SERVER_EXCEPTION:
 		switch (x.reply.id) {
@@ -54,19 +76,19 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, char *labview_
 			sprintf(labview_error_string, "%s: server connection error %uh, message: %.*s\n",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			return 4;
+			return  _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 			case AMQP_CHANNEL_CLOSE_METHOD: {
 			amqp_channel_close_t *m = (amqp_channel_close_t *)x.reply.decoded;
 			sprintf(labview_error_string, "%s: server channel error %uh, message: %.*s\n",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			return 5;
+			return  _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 			default:
 			sprintf(labview_error_string, "%s: unknown server error, method id 0x%08X\n",
 					context, x.reply.id);
-			return 6;
+			return _AMQP_RESPONSE_SERVER_EXCEPTION;
 		}
 		break;
 	}
@@ -255,36 +277,36 @@ char *name(char *res) {
 };
 
 
-//Reviewed
+//OK
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_login(int64_t conn_intptr, char *host, int port, char *username, char *password, char *des) {
-
-	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
-
+int lv_amqp_login(int64_t conn_intptr, char *host, int port, char *username, char *password, char *labview_error_string) {
+	
 	int status;
 	amqp_socket_t *socket = NULL;
+	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+
 	socket = amqp_tcp_socket_new(conn);
-	// TO DO: if socket is NULL, LabVIEW will crash
+	if (!socket) {
+		return _CREATING_TCP_SOCKET;
+  	}
 	status = amqp_socket_open(socket, host, port);
-	// TO DO: if status is not 0, LabVIEW will crash
+	if (status) {
+    return _OPENING_TCP_SOCKET;
+  	} 
 	/*Code explanation:
-	socket is set/stored in the connection state, so I beleve
-	it will be destroyed along with connection state destroy function*/  
+	socket is set/stored in the connection state,
+	it will be destroyed along with connection state destroy function*/ 
 
-	char *r;
-	r = lv_die_on_amqp_error2(amqp_login(conn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN,
+	const VHOST = "/"; 			// the virtual host to connect to on the broker. The default on most brokers is "/"
+	const CHANNEL_MAX = 0; 		// the limit for number of channels for the connection. 0 means no limit.
+	const FRAME_MAX = 131072; 	// the maximum size of an AMQP frame. 131072 is the default. 
+								// 4096 is the minimum size, 2^31-1 is the maximum, a good default is 131072 (128KB),
+	const HEARTBEAT = 0; 		// the number of seconds between heartbeat frames to request of the broker. A value of 0 disables heartbeats.
+
+	return lv_report_amqp_error(amqp_login(conn, VHOST, CHANNEL_MAX, FRAME_MAX, HEARTBEAT, AMQP_SASL_METHOD_PLAIN,
 		username, password),
-		"Logging in", "");
-	//char *char_temp = "1";
-	// TO DO: why char is used here?
-	/* Create a additional file that containes enum with error codes
-	that can be "copied" in LabVIEW, use the enum instead of char*/
+		"Logging in", *labview_error_string);
 	
-	// TO DO: the constants used in the function are not defined
-	// however, they are the same like in original code example
-	// It woudl make sens to describe them
-
-	// TO DO: the function doesn't return anything
 }
 
 
