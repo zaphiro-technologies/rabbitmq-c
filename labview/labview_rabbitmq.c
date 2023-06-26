@@ -6,6 +6,8 @@
 #include "utils.h"
 #include "extcode.h"
 #include "labview_rabbitmq.h"
+#include <assert.h>
+#include <sys/time.h>
 
 enum ERROR_CODE {
     RED,
@@ -279,18 +281,24 @@ char *name(char *res) {
 
 //OK
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_login(int64_t conn_intptr, char *host, int port, char *username, char *password, char *labview_error_string) {
+int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, char *username, char *password, char *labview_error_string) {
 	
 	int status;
 	amqp_socket_t *socket = NULL;
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 
+	struct timeval tval;
+	struct timeval *tv;
+	tv = &tval;
+	tv->tv_sec = timeout_sec;
+	tv->tv_usec = 0;
+
 	socket = amqp_tcp_socket_new(conn);
 	if (!socket) {
 		return _CREATING_TCP_SOCKET;
   	}
-	status = amqp_socket_open(socket, host, port);
-	if (status) {
+	status = amqp_socket_open_noblock(socket, host, port, tv);
+	if (status<0) {
     return _OPENING_TCP_SOCKET;
   	} 
 	/*Code explanation:
