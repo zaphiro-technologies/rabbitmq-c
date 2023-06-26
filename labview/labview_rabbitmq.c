@@ -28,7 +28,7 @@ typedef enum error_code_enum_ {
 	_CREATING_TCP_SOCKET, /**< Creating TCP socked failed */
 	_OPENING_TCP_SOCKET /**< Openning TCP socked failed */
 									   
-}
+};
 
 LABVIEW_PUBLIC_FUNCTION
 char lv_rabbitmq_version(void) {
@@ -83,7 +83,7 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, char *labview_
 			sprintf(labview_error_string, "%s: server channel error %uh, message: %.*s\n",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			return  _AMQP_RESPONSE_SERVER_EXCEPTION;
+			return _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 			default:
 			sprintf(labview_error_string, "%s: unknown server error, method id 0x%08X\n",
@@ -297,16 +297,15 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, char *username, cha
 	socket is set/stored in the connection state,
 	it will be destroyed along with connection state destroy function*/ 
 
-	const VHOST = "/"; 			// the virtual host to connect to on the broker. The default on most brokers is "/"
-	const CHANNEL_MAX = 0; 		// the limit for number of channels for the connection. 0 means no limit.
-	const FRAME_MAX = 131072; 	// the maximum size of an AMQP frame. 131072 is the default. 
+	char const *VHOST = "/"; 			// the virtual host to connect to on the broker. The default on most brokers is "/"
+	int const CHANNEL_MAX = 0; 		// the limit for number of channels for the connection. 0 means no limit.
+	int const FRAME_MAX = 131072; 	// the maximum size of an AMQP frame. 131072 is the default. 
 								// 4096 is the minimum size, 2^31-1 is the maximum, a good default is 131072 (128KB),
-	const HEARTBEAT = 0; 		// the number of seconds between heartbeat frames to request of the broker. A value of 0 disables heartbeats.
+	int const HEARTBEAT = 0; 		// the number of seconds between heartbeat frames to request of the broker. A value of 0 disables heartbeats.
 
-	return lv_report_amqp_error(amqp_login(conn, VHOST, CHANNEL_MAX, FRAME_MAX, HEARTBEAT, AMQP_SASL_METHOD_PLAIN,
-		username, password),
-		"Logging in", *labview_error_string);
-	
+
+	int status_code = lv_report_amqp_error(amqp_login(conn, VHOST, CHANNEL_MAX, FRAME_MAX, HEARTBEAT, AMQP_SASL_METHOD_PLAIN, username, password), "Logging in", labview_error_string);
+	return status_code;
 }
 
 
@@ -431,6 +430,7 @@ void lv_amqp_destroy_envelope(int envelope) {
 /* Handle "cnt" field is int32 so max length is INT32_MAX. */
 #define MaxHandleStringLength INT32_MAX
 
+
 LABVIEW_PUBLIC_FUNCTION
 void LVLStrHandle(int *conn_int, int *number, LStrHandle input, LStrHandle output)
 {
@@ -513,4 +513,5 @@ void LVLStrHandle(int *conn_int, int *number, LStrHandle input, LStrHandle outpu
 
 
 }
+
 
