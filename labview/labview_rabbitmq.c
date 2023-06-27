@@ -291,16 +291,14 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 
 	struct timeval tval;
-	struct timeval *tv;
-	tv = &tval;
-	tv->tv_sec = timeout_sec;
-	tv->tv_usec = 0;
+	tval.tv_sec = timeout_sec;
+	tval.tv_usec = 0;
 
 	socket = amqp_tcp_socket_new(conn);
 	if (!socket) {
 		return _CREATING_TCP_SOCKET;
   	}
-	status = amqp_socket_open_noblock(socket, host, port, tv);
+	status = amqp_socket_open_noblock(socket, host, port, &tval);
 	if (status<0) {
     return _OPENING_TCP_SOCKET;
   	} 
@@ -344,7 +342,7 @@ void lv_amqp_basic_publish(int64_t conn_intptr, char *exchange, char *routingkey
 
 
 
-//Reviewed
+//ok
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange, char *bindingkey, char *labview_error_string) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
@@ -380,7 +378,7 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange,
 	amqp_basic_consume(conn, channel, queuename, amqp_empty_bytes, NO_LOCAL, NO_ACK, EXCLUSIVE2, amqp_empty_table);
 	/* amqp_basic_consume is used to register a consumer on the queue,
 	 so that the broker will start delivering messages to it.*/
-	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Consuming", labview_error_string);
+	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Basic consume", labview_error_string);
     return status;
 }
 
@@ -388,7 +386,7 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange,
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-char *lv_amqp_consume_message2(int64_t conn_intptr, int *e, int *number, char *des) {
+int lv_amqp_consume_message(int64_t conn_intptr, int *e, int *number, char *des) {
 	
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
          
