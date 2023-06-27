@@ -14,6 +14,7 @@ enum ERROR_CODE {
     GREEN,
     BLUE
 };
+int const SIZE_OF_LABVIEW_CREATED_ERROR_STRING = 100;
 
 typedef enum error_code_enum_ {
 	// Following codes are copied from amqp_response_type_enum_ and are used by 
@@ -28,7 +29,8 @@ typedef enum error_code_enum_ {
 	// Next error codes are custom for this library	
 	_LABVIEW_ERROR_STR_LENGHT, /**< LabVIEW provided error string is not the correct lenght */
 	_CREATING_TCP_SOCKET, /**< Creating TCP socked failed */
-	_OPENING_TCP_SOCKET /**< Openning TCP socked failed */
+	_OPENING_TCP_SOCKET, /**< Openning TCP socked failed */
+	_OUT_OF_MEMORY /**< Copy function failed*/
 									   
 };
 
@@ -50,7 +52,6 @@ enhanced with LabVIEW string support.*/
 LABVIEW_PUBLIC_FUNCTION
 int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, char *labview_error_string) {
 
-	const int SIZE_OF_LABVIEW_CREATED_ERROR_STRING = 100;
 
 	//Check if the string is the correct size
 	char buffer[SIZE_OF_LABVIEW_CREATED_ERROR_STRING];
@@ -345,34 +346,42 @@ void lv_amqp_basic_publish(int64_t conn_intptr, char *exchange, char *routingkey
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_consume_message1(int64_t conn_intptr, char *exchange, char *bindingkey) {
+int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange, char *bindingkey, char *labview_error_string) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
+	int status;
+	amqp_bytes_t queuename;
 
-        
-	amqp_queue_declare_ok_t *r = amqp_queue_declare(
-		conn, 1, amqp_empty_bytes, 0, 0, 0, 1, amqp_empty_table);
-        int a =	lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "Declaring queue");
-	// TO DO: if error - > retrun it
+    amqp_boolean_t PASSIVE = 0;
+	amqp_boolean_t DURABLE = 0;
+	amqp_boolean_t EXCLUSIVE = 0;
+	amqp_boolean_t AUTO_DELETE = 1;
+	amqp_queue_declare_ok_t *r = amqp_queue_declare(conn, channel, amqp_empty_bytes, PASSIVE, DURABLE, EXCLUSIVE, AUTO_DELETE, amqp_empty_table);
+
+    status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Declaring queue", labview_error_string);
+	if (status != 1) {
+		return status;
+	}
+	
 	queuename = amqp_bytes_malloc_dup(r->queue);
 	if (queuename.bytes == NULL) {
-		//fprintf(stderr, "Out of memory while copying queue name");
-		//return "Out of memory while copying queue name";
-		return 0;
-		// TO DO return error code to LabVIEW
+		strncpy(labview_error_string, "Out of memory while copying queue name", SIZE_OF_LABVIEW_CREATED_ERROR_STRING);
+		return _OUT_OF_MEMORY;
 	}
 
+	amqp_queue_bind(conn, channel, queuename, amqp_cstring_bytes(exchange), amqp_cstring_bytes(bindingkey), amqp_empty_table);
+	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Binding queue", labview_error_string);
+	if (status != 1) {
+		return status;
+	}
 
-	amqp_queue_bind(conn, 1, queuename, amqp_cstring_bytes(exchange),
-		amqp_cstring_bytes(bindingkey), amqp_empty_table);
-	int b = lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "Binding queue");
-	// TO DO: if error - > retrun it
-	amqp_basic_consume(conn, 1, queuename, amqp_empty_bytes, 0, 1, 0,
-		amqp_empty_table);
+	amqp_boolean_t NO_LOCAL = 0;
+	amqp_boolean_t NO_ACK = 0;
+	amqp_boolean_t EXCLUSIVE2 = 0;
+	amqp_basic_consume(conn, channel, queuename, amqp_empty_bytes, NO_LOCAL, NO_ACK, EXCLUSIVE2, amqp_empty_table);
 	/* amqp_basic_consume is used to register a consumer on the queue,
 	 so that the broker will start delivering messages to it.*/
-	int c = lv_die_on_amqp_error(amqp_get_rpc_reply(conn), "Consuming");
-
-        return 1;
+	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Consuming", labview_error_string);
+    return status;
 }
 
 
