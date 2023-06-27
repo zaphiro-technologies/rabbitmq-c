@@ -373,7 +373,7 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange,
 	}
 
 	amqp_boolean_t NO_LOCAL = 0;
-	amqp_boolean_t NO_ACK = 0;
+	amqp_boolean_t NO_ACK = 1;
 	amqp_boolean_t EXCLUSIVE2 = 0;
 	amqp_basic_consume(conn, channel, queuename, amqp_empty_bytes, NO_LOCAL, NO_ACK, EXCLUSIVE2, amqp_empty_table);
 	/* amqp_basic_consume is used to register a consumer on the queue,
