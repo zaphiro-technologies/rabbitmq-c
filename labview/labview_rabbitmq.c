@@ -386,48 +386,38 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange,
 
 //Reviewed
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_consume_message(int64_t conn_intptr, int *e, int *number, char *des) {
-	
+int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, char *labview_error_string) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
-         
-        char  *aaa;
 
-	struct lv_timeval lv_timeval1;
-	lv_timeval1.tv_sec = 0;
-	lv_timeval1.tv_usec = 100000;
+	int status;
+	struct timeval tval;
+	tval.tv_sec = timeout_sec;
+	tval.tv_usec = 0;
+	amqp_rpc_reply_t res;
+	amqp_envelope_t envelope;
 
-		amqp_rpc_reply_t res;
-		amqp_envelope_t envelope;
-		amqp_maybe_release_buffers(conn);
-		res = amqp_consume_message(conn, &envelope, &lv_timeval1, 0);
+	amqp_maybe_release_buffers(conn);
 
-		if (envelope.message.body.len > 0) {
-			//TO DO: no idea what is this
-			*number = lv_amqp_dump(envelope.message.body.len);
-			*e = &envelope;
+	status = lv_report_amqp_error(amqp_consume_message(conn, &envelope, &tval, 0),"Consuming message", labview_error_string);
+	if (status != 1) {
+		return status;
+	}
 
-			//amqp_destroy_envelope(&envelope);
-			aaa = envelope.message.body.bytes;
-
-			//return envelope.message.body.bytes;
-			return aaa;
+	if (envelope.message.body.len > 0) {
+		if ( !DSCheckHandle( output )) {
+			if (( *output )->cnt < envelope.message.body.len ) {
+			/* Adjust the handle size to message body lenght */
+			DSSetHandleSize(( void* )output, envelope.message.body.len );
+			}
+			if ( !DSCheckHandle( output )) {
+				strncpy((*output)->str, envelope.message.body.bytes, envelope.message.body.len);
+				(*output)->cnt = envelope.message.body.len;
+			}
 		}
-		else {
-			return "null";
-		}
-		//amqp_destroy_envelope(&envelope);
-           	
-           char *b = "abcd";
-           des = aaa;
-           return des;
-	// TO DO: returning pointer from string can be done more elegant
+	}
 
-	//TO DO: memory leak here
-	//amqp_destroy_envelope(&envelope) is not triggered
-	// probably because it will delete received message string
-	// best way to do it is to get string from LabVIEW and 
-	// copy the content of the message to it, so LabVIEW will take
-	// care of the memory allocation
+	amqp_destroy_envelope(&envelope);
+	return status;
 }
 
 
