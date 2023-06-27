@@ -226,17 +226,14 @@ void lv_amqp_destroy_connection(int64_t conn_intptr) {
 }
 
 
-//Reviewed
+//ok
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_channel_open(int64_t conn_intptr) {
+void lv_amqp_channel_open(int64_t conn_intptr, uint16_t  channel, char *labview_error_string) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
-	amqp_channel_open(conn, 1);
+	amqp_channel_open(conn, channel);
+	return lv_report_amqp_error(amqp_get_rpc_reply(conn), "Opening channel", labview_error_string);
+
 }
-// TO DO: channel is set constant to 1, should be a parameter
-// TO DO: add amqp_get_rpc_reply function
-/* to get the status there is always amqp_get_rpc_reply function
-that collects it, I think there is no need to split them for LabVIEW
-so it should be integrated into this function*/
 
 
 //Reviewed
@@ -305,15 +302,13 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
 	socket is set/stored in the connection state,
 	it will be destroyed along with connection state destroy function*/ 
 
-	char const *VHOST = "/"; 			// the virtual host to connect to on the broker. The default on most brokers is "/"
+	char const *VHOST = "/"; 		// the virtual host to connect to on the broker. The default on most brokers is "/"
 	int const CHANNEL_MAX = 0; 		// the limit for number of channels for the connection. 0 means no limit.
 	int const FRAME_MAX = 131072; 	// the maximum size of an AMQP frame. 131072 is the default. 
-								// 4096 is the minimum size, 2^31-1 is the maximum, a good default is 131072 (128KB),
+									// 4096 is the minimum size, 2^31-1 is the maximum, a good default is 131072 (128KB),
 	int const HEARTBEAT = 0; 		// the number of seconds between heartbeat frames to request of the broker. A value of 0 disables heartbeats.
 
-
-	int status_code = lv_report_amqp_error(amqp_login(conn, VHOST, CHANNEL_MAX, FRAME_MAX, HEARTBEAT, AMQP_SASL_METHOD_PLAIN, username, password), "Logging in", labview_error_string);
-	return status_code;
+	return lv_report_amqp_error(amqp_login(conn, VHOST, CHANNEL_MAX, FRAME_MAX, HEARTBEAT, AMQP_SASL_METHOD_PLAIN, username, password), "Logging in", labview_error_string);	
 }
 
 
