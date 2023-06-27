@@ -255,17 +255,22 @@ int lv_amqp_get_rpc_reply(int64_t conn_intptr, char *operation) {
 }
 
 
-//Reviewed
+//ok
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_exchange_declare(int64_t conn_intptr, char *exchange, char *exchangetype ) {
+int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t  channel, char *exchange, char *exchangetype, char *labview_error_string) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
-	amqp_exchange_declare(conn, 1, amqp_cstring_bytes(exchange),
-		amqp_cstring_bytes(exchangetype), 0, 0, 0, 0,
+
+	amqp_boolean_t PASSIVE = 0;
+	amqp_boolean_t DURABLE = 0;
+	amqp_boolean_t AUTO_DELETE = 0;
+	amqp_boolean_t INTERNAL = 0;
+	amqp_exchange_declare(conn, channel, amqp_cstring_bytes(exchange),
+		amqp_cstring_bytes(exchangetype), PASSIVE, DURABLE, AUTO_DELETE, INTERNAL,
 		amqp_empty_table);
-        return 1;
+
+    return lv_report_amqp_error(amqp_get_rpc_reply(conn), "Exchange declare", labview_error_string);
 }
-// TO DO : add the amqp_get_rpc_reply function
-// This function will be used for examples only
+
 
 LABVIEW_PUBLIC_FUNCTION
 char *name(char *res) {
