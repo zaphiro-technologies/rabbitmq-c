@@ -11,7 +11,7 @@
 /* Cintools: Handle "cnt" field is int32 so max length is INT32_MAX. */
 #define MaxHandleStringLength INT32_MAX
 
-typedef enum error_code_enum_ {
+enum error_code_enum_ {
 	// Following codes are copied from amqp_response_type_enum_ and are used by 
 	// the lv_report_amqp_error function only. 
   	_AMQP_RESPONSE_NONE = 0, /**< the library got an EOF from the socket */
@@ -30,7 +30,7 @@ typedef enum error_code_enum_ {
 									   
 };
 
-int lv_strncpy(LStrHandle dest, const char *src) {
+int lv_strncpy(LStrHandle dest, char *src) {
 	size_t len = strlen(src);
 	if (len > INT32_MAX) {
 		return _STR_LEN_OVER_INT32MAX;
@@ -56,8 +56,8 @@ int lv_strncpy(LStrHandle dest, const char *src) {
 }
 
 LABVIEW_PUBLIC_FUNCTION
-char lv_rabbitmq_version(void) {
-	char VERSION = "0.0.1";
+char* lv_rabbitmq_version(void) {
+	char* VERSION = "0.0.1";
 	return VERSION;
 }
 
@@ -79,8 +79,8 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle err
 			return _AMQP_RESPONSE_NONE;
 
 		case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: %s\n", context, amqp_error_string2(x.library_error));
-			lv_strncpy(error_description, temp_str);
+			// snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: %s\n", context, amqp_error_string2(x.library_error));
+			lv_strncpy(error_description, "temp_str");
 			return _AMQP_RESPONSE_LIBRARY_EXCEPTION;
 
 		case AMQP_RESPONSE_SERVER_EXCEPTION:
@@ -140,7 +140,7 @@ void lv_amqp_destroy_connection(int64_t conn_intptr) {
 
 
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_channel_open(int64_t conn_intptr, uint16_t  channel, LStrHandle error_description) {
+int lv_amqp_channel_open(int64_t conn_intptr, uint16_t  channel, LStrHandle error_description) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 	amqp_channel_open(conn, channel);
 	return lv_report_amqp_error(amqp_get_rpc_reply(conn), "Opening channel", error_description);
@@ -204,17 +204,14 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
 
 
 LABVIEW_PUBLIC_FUNCTION
-void lv_amqp_basic_publish(int64_t conn_intptr, char *exchange, char *routingkey, char *messagebody) {
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t  channel, char *exchange, char *routingkey, char *messagebody, LStrHandle error_description) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 	amqp_basic_properties_t props;
 	props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
 	props.content_type = amqp_cstring_bytes("text/plain");
 	props.delivery_mode = 2; /* persistent delivery mode */
-	die_on_error(amqp_basic_publish(conn, 1, amqp_cstring_bytes(exchange),
-		amqp_cstring_bytes(routingkey), 0, 0,
-		&props, amqp_cstring_bytes(messagebody)),
-		"Publishing");
-	// TO DO: labview will crash in case of error here
+	return amqp_basic_publish(conn, channel, amqp_cstring_bytes(exchange),amqp_cstring_bytes(routingkey), 0, 0, &props, amqp_cstring_bytes(messagebody));
+	//this function returns amqp_status_enum thats different from amqp_rpc_reply_t
 }
 
 
