@@ -76,29 +76,73 @@ typedef struct ILVClusterTypeDescriptor ILVClusterTypeDescriptor;
 #ifndef _fundtypes_H
 typedef char int8_t;
 
-typedef unsigned char uint8_t;
-
-typedef short int16_t;
-
-typedef unsigned short uint16_t;
+typedef short int int16_t;
 
 typedef int int32_t;
 
+typedef long long int64_t;
+
+typedef unsigned char uint8_t;
+
+typedef unsigned short int uint16_t;
+
 typedef unsigned int uint32_t;
 
-typedef int8_t int8;
+typedef unsigned long long uint64_t;
 
-typedef uint8_t uInt8;
+typedef char int_least8_t;
+
+typedef short int int_least16_t;
+
+typedef int int_least32_t;
+
+typedef long long int_least64_t;
+
+typedef unsigned char uint_least8_t;
+
+typedef unsigned short int uint_least16_t;
+
+typedef unsigned int uint_least32_t;
+
+typedef unsigned long long uint_least64_t;
+
+typedef char int_fast8_t;
+
+typedef int int_fast16_t;
+
+typedef int int_fast32_t;
+
+typedef long long int_fast64_t;
+
+typedef unsigned char uint_fast8_t;
+
+typedef unsigned int uint_fast16_t;
+
+typedef unsigned int uint_fast32_t;
+
+typedef unsigned long long uint_fast64_t;
+
+typedef int intptr_t;
+
+typedef unsigned int uintptr_t;
+
+typedef long long intmax_t;
+
+typedef unsigned long long uintmax_t;
+
+typedef char int8;
+
+typedef unsigned char uInt8;
 
 typedef uInt8 uChar;
 
-typedef int16_t int16;
+typedef short int int16;
 
-typedef uint16_t uInt16;
+typedef unsigned short int uInt16;
 
-typedef int32_t int32;
+typedef int int32;
 
-typedef uint32_t uInt32;
+typedef unsigned int uInt32;
 
 typedef float float32;
 
@@ -109,6 +153,10 @@ typedef struct  {
    int32 mhi;
    int16 e;
 } floatExt;
+
+typedef long long int64;
+
+typedef unsigned long long uInt64;
 
 typedef struct  {
    float32 re;
@@ -127,97 +175,14 @@ typedef struct  {
 
 typedef int32 Bool32;
 
-typedef __int64 int64_t;
+typedef int32 HRESULT;
 
-typedef unsigned __int64 uint64_t;
-
-typedef int64_t int64;
-
-typedef uint64_t uInt64;
-
-typedef long HRESULT;
-
-typedef long SCODE;
-
-typedef unsigned int uintptr_t;
-
-typedef unsigned char* va_list;
-
-__pragma(pack(push, _CRT_PACKING))
-extern "C" {
-typedef unsigned int size_t;
+typedef int32 SCODE;
 
 typedef int ptrdiff_t;
 
-typedef int intptr_t;
+typedef unsigned int size_t;
 
-typedef char __vcrt_bool;
-
-#define __security_cookie 
-}
-__pragma(pack(pop))
-__pragma(pack(push, _CRT_PACKING))
-extern "C" {
-typedef int __crt_bool;
-
-   virtual void NIDL_STDMETHODCALLTYPE _invalid_parameter_noinfo(void) = 0;
-   virtual void NIDL_STDMETHODCALLTYPE _invalid_parameter_noinfo_noreturn(void) = 0;
-   virtual void NIDL_STDMETHODCALLTYPE _invoke_watson(
-      const wchar_t* ,
-      const wchar_t* ,
-      const wchar_t* ,
-      unsigned int ,
-      uintptr_t ) = 0;
-typedef int errno_t;
-
-typedef unsigned short wint_t;
-
-typedef unsigned short wctype_t;
-
-typedef long __time32_t;
-
-typedef __int64 __time64_t;
-
-typedef struct __crt_locale_data_public {
-   const unsigned short* _locale_pctype;
-   int _locale_mb_cur_max;
-   unsigned int _locale_lc_codepage;
-} __crt_locale_data_public;
-
-typedef struct __crt_locale_pointers {
-   struct __crt_locale_data {
-}* locinfo;
-   struct __crt_multibyte_data {
-}* mbcinfo;
-} __crt_locale_pointers;
-
-typedef __crt_locale_pointers* _locale_t;
-
-typedef struct _Mbstatet {
-   unsigned long _Wchar;
-   unsigned short _State;
-   unsigned short _Byte;
-} _Mbstatet;
-
-typedef _Mbstatet mbstate_t;
-
-typedef __time64_t time_t;
-
-typedef size_t rsize_t;
-
-}
-__pragma(pack(pop))
-__pragma(pack(push, _CRT_PACKING))
-extern "C" {
-   virtual int* NIDL_STDMETHODCALLTYPE _errno(void) = 0;
-   virtual errno_t NIDL_STDMETHODCALLTYPE _set_errno(
-      int _Value) = 0;
-   virtual errno_t NIDL_STDMETHODCALLTYPE _get_errno(
-      int* _Value) = 0;
-   virtual unsigned long NIDL_STDMETHODCALLTYPE __threadid(void) = 0;
-   virtual uintptr_t NIDL_STDMETHODCALLTYPE __threadhandle(void) = 0;
-}
-__pragma(pack(pop))
 typedef int32 MgErr;
 
 #endif // ifndef _fundtypes

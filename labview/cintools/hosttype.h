@@ -2,7 +2,7 @@
 #define _hosttype_H
 /**
 	NI CONFIDENTIAL
-	(c) Copyright 1990-2019 by National Instruments Corp.
+	(c) Copyright 1990-2020 by National Instruments Corp.
 	All rights reserved.
 
 	@file

@@ -1,7 +1,7 @@
 #ifndef _fundtypes_H
 #define _fundtypes_H
 /*
-	(c) Copyright 1990-2019 by National Instruments Corp.
+	(c) Copyright 1990-2020 by National Instruments Corp.
 	All rights reserved.
 
 

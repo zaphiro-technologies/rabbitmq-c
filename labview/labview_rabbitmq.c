@@ -31,7 +31,7 @@ enum error_code_enum_ {
 };
 
 int lv_strncpy(LStrHandle dest, char *src) {
-	size_t len = strlen(src);
+	int32 len = strlen(src);
 	if (len > INT32_MAX) {
 		return _STR_LEN_OVER_INT32MAX;
 	}
@@ -41,7 +41,8 @@ int lv_strncpy(LStrHandle dest, char *src) {
 		DSSetHandleSize(( void* )dest, len);
 		}
 		if ( !DSCheckHandle( dest )) {
-			strncpy((*dest)->str, src, len);
+			//strncpy((*dest)->str, src, len);
+			optional: memcpy((*dest)->str, src, len);
 			(*dest)->cnt = len;
 		}
 		else {
@@ -61,26 +62,32 @@ char* lv_rabbitmq_version(void) {
 	return VERSION;
 }
 
-int const MAX_ERROR_DESCRIPTION_LENGTH = 1000;
+size_t const MAX_ERROR_DESCRIPTION_LENGTH = 1000;
 
 /* This function is a modified version of the `die_on_amqp_error` function used in examples,
 enhanced with LabVIEW string support.*/
 LABVIEW_PUBLIC_FUNCTION
 int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle error_description) {
-	char temp_str[MAX_ERROR_DESCRIPTION_LENGTH];
-
+	unsigned char temp_str[MAX_ERROR_DESCRIPTION_LENGTH];
+	int cp_status;
 	switch (x.reply_type) {
 		case AMQP_RESPONSE_NORMAL:
 			return _AMQP_RESPONSE_NORMAL;
 
 		case AMQP_RESPONSE_NONE:
-			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: missing RPC reply type!\n", context);
-			lv_strncpy(error_description, temp_str);
+			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: missing RPC reply type!", context);
+			cp_status = lv_strncpy(error_description, temp_str);
+			if (cp_status != 0){
+				return cp_status;
+			}
 			return _AMQP_RESPONSE_NONE;
 
 		case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-			// snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: %s\n", context, amqp_error_string2(x.library_error));
-			lv_strncpy(error_description, "temp_str");
+			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: %s ", context, amqp_error_string2(x.library_error));
+			cp_status = lv_strncpy(error_description, temp_str);
+			if (cp_status != 0){
+				return cp_status;
+			}
 			return _AMQP_RESPONSE_LIBRARY_EXCEPTION;
 
 		case AMQP_RESPONSE_SERVER_EXCEPTION:
@@ -88,24 +95,33 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle err
 			case AMQP_CONNECTION_CLOSE_METHOD: {
 			amqp_connection_close_t *m =
 				(amqp_connection_close_t *)x.reply.decoded;
-			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: server connection error %uh, message: %.*s\n",
+			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: server connection error %uh, message: %.*s ",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			lv_strncpy(error_description, temp_str);
+			cp_status = lv_strncpy(error_description, temp_str);
+			if (cp_status != 0){
+				return cp_status;
+			}
 			return  _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 			case AMQP_CHANNEL_CLOSE_METHOD: {
 			amqp_channel_close_t *m = (amqp_channel_close_t *)x.reply.decoded;
-			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: server channel error %uh, message: %.*s\n",
+			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: server channel error %uh, message: %.*s ",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			lv_strncpy(error_description, temp_str);
+			cp_status = lv_strncpy(error_description, temp_str);
+			if (cp_status != 0){
+				return cp_status;
+			}
 			return _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 			default:
-			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: unknown server error, method id 0x%08X\n",
+			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: unknown server error, method id 0x%08X ",
 					context, x.reply.id);
-			lv_strncpy(error_description, temp_str);
+			cp_status = lv_strncpy(error_description, temp_str);
+			if (cp_status != 0){
+				return cp_status;
+			}
 			return _AMQP_RESPONSE_SERVER_EXCEPTION;
 		}
 		break;
@@ -266,7 +282,7 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 	amqp_rpc_reply_t res;
 	amqp_envelope_t envelope;
 
-	amqp_maybe_release_buffers(conn);
+	//amqp_maybe_release_buffers(conn);
 
 	status = lv_report_amqp_error(amqp_consume_message(conn, &envelope, &tval, 0),"Consuming message", error_description);
 	if (status != 1) {

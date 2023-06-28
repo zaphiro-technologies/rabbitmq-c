@@ -1,7 +1,7 @@
 #ifndef _extcode_H
 #define _extcode_H
 /**
-	(c) Copyright 1990-2019 by National Instruments Corp.
+	(c) Copyright 1990-2020 by National Instruments Corp.
 	All rights reserved.
 
 	@author National Instruments Corp.
@@ -451,7 +451,8 @@ enum {
 	kAppErrorBase = 1000,	/* Start of application errors */
 	kAppLicenseErr = 1380,	/* Failure to check out license error */
 	kAppCharsetConvertErr =1396, /* could not convert text from charset to charset */
-	kAppErrorLast = 1399	/* Last allocated in Error DB */
+	kAppErrorLast = 1399, /* Last allocated in Error DB */
+	kAppInvalidUTF8ByteSequence = 1675 // The input string contains invalid UTF-8 string sequence.
 };
 
 typedef MagicCookie Occurrence;
@@ -471,6 +472,8 @@ TH_PROTECTED EXTERNC MgErr _FUNCC Occur(Occurrence o);
 #elif MacCocoa
 	// OS X wants a signed value to represent times before the unix epoch
 	typedef int64 lvtime;
+#elif MSWin
+	typedef uInt64 lvtime;
 #else
 	typedef uInt32 lvtime;
 #endif
@@ -789,6 +792,7 @@ TH_REENTRANT EXTERNC MgErr _FUNCC DSCopyHandle(void *ph, const void *hsrc);
 TH_REENTRANT EXTERNC MgErr _FUNCC DSSetHandleSize(void *h, size_t);
 TH_REENTRANT EXTERNC MgErr _FUNCC DSSetHSzClr(void *h, size_t);
 TH_REENTRANT EXTERNC MgErr _FUNCC DSSetAlignedHandleSize(void *h, size_t, size_t alignment, size_t alignmentOffset);
+TH_REENTRANT EXTERNC MgErr _FUNCC DSSetAlignedHandleSizeNoInit(void *h, size_t n, size_t alignment, size_t alignmentOffset);
 TH_REENTRANT EXTERNC MgErr _FUNCC DSSetAlignedHSzClr(void *h, size_t, size_t alignment, size_t alignmentOffset);
 TH_REENTRANT EXTERNC MgErr _FUNCC DSDisposeHandle(void *h);
 TH_REENTRANT EXTERNC MgErr _FUNCC DSDisposePtr(void *p);
@@ -1562,6 +1566,7 @@ typedef void* InstanceDataPtr;
 TH_REENTRANT EXTERNC MgErr _FUNCC CallChain(UHandle);
 
 TH_REENTRANT EXTERNC MgErr _FUNCC NumericArrayResize(int32, int32, UHandle*, size_t);
+TH_REENTRANT EXTERNC MgErr _FUNCC NumericArrayResizeNoInit(int32, int32, UHandle*, size_t);
 
 /*** Application Builder ***/
 
