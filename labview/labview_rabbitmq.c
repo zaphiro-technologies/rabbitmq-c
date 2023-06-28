@@ -8,27 +8,6 @@
 #include <assert.h>
 #include <sys/time.h>
 
-/* Cintools: Handle "cnt" field is int32 so max length is INT32_MAX. */
-#define MaxHandleStringLength INT32_MAX
-
-enum error_code_enum_ {
-	// Following codes are copied from amqp_response_type_enum_ and are used by 
-	// the lv_report_amqp_error function only. 
-  	_AMQP_RESPONSE_NONE = 0, /**< the library got an EOF from the socket */
-  	_AMQP_RESPONSE_NORMAL, /**< response normal, the RPC completed successfully */
-  	_AMQP_RESPONSE_LIBRARY_EXCEPTION, /**< library error, an error occurred in the
-                                      library, examine the library_error */
-  	_AMQP_RESPONSE_SERVER_EXCEPTION,   /**< server exception, the broker returned an
-                                      error, check replay */
-
-	// Next error codes are custom for this library	
-	_STR_LEN_OVER_INT32MAX, /**< LabVIEW provided error string is not the correct lenght */
-	_CREATING_TCP_SOCKET, /**< Creating TCP socked failed */
-	_OPENING_TCP_SOCKET, /**< Openning TCP socked failed */
-	_OUT_OF_MEMORY, /**< Copy function failed*/
-	_LSTRHANDLE_IS_NULL /**< LStrHandle is NULL */
-									   
-};
 
 int lv_strncpy(LStrHandle dest, char *src) {
 	int32 len = strlen(src);
@@ -61,8 +40,6 @@ char* lv_rabbitmq_version(void) {
 	char* VERSION = "0.0.1";
 	return VERSION;
 }
-
-size_t const MAX_ERROR_DESCRIPTION_LENGTH = 1000;
 
 /* This function is a modified version of the `die_on_amqp_error` function used in examples,
 enhanced with LabVIEW string support.*/
