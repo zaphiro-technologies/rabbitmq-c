@@ -20,8 +20,8 @@ int lv_strncpy(LStrHandle dest, char *src) {
 		DSSetHandleSize(( void* )dest, len);
 		}
 		if ( !DSCheckHandle( dest )) {
-			//strncpy((*dest)->str, src, len);
-			optional: memcpy((*dest)->str, src, len);
+			strncpy((*dest)->str, src, len);
+			//optional: memcpy((*dest)->str, src, len);
 			(*dest)->cnt = len;
 		}
 		else {
@@ -43,7 +43,6 @@ char* lv_rabbitmq_version(void) {
 
 /* This function is a modified version of the `die_on_amqp_error` function used in examples,
 enhanced with LabVIEW string support.*/
-LABVIEW_PUBLIC_FUNCTION
 int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle error_description) {
 	unsigned char temp_str[MAX_ERROR_DESCRIPTION_LENGTH];
 	int cp_status;
