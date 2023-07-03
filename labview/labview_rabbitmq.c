@@ -7,6 +7,7 @@
 #include "labview_rabbitmq.h"
 #include <assert.h>
 #include <sys/time.h>
+#include <stdio.h>
 
 
 MgErr copyStringToLStrHandle(char* cpString, LStrHandle LVString)
@@ -224,7 +225,7 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange,
 	
 	queuename = amqp_bytes_malloc_dup(r->queue);
 	if (queuename.bytes == NULL) {
-		lv_strncpy(error_description, "Out of memory while copying queue name");
+		copyStringToLStrHandle("Out of memory while copying queue name", error_description);
 		return _OUT_OF_MEMORY;
 	}
 
