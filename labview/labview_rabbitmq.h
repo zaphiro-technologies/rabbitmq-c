@@ -34,8 +34,6 @@ enum error_code_enum_ {
     _LSTRHANDLE_IS_NULL
 };
 
-int lv_strncpy(LStrHandle dest, char* src);
-
 char* lv_rabbitmq_version(void);
 
 int lv_report_amqp_error(amqp_rpc_reply_t x, char const* context, LStrHandle error_description);
