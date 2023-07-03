@@ -9,30 +9,28 @@
 #include <sys/time.h>
 
 
-int lv_strncpy(LStrHandle dest, char *src) {
-	int32 len = strlen(src);
-	if (len > INT32_MAX) {
-		return _STR_LEN_OVER_INT32MAX;
-	}
-	if ( !DSCheckHandle( dest )) {
-		if (( *dest )->cnt < len ) {
-		/* Adjust the handle size to source string lenght */
-		DSSetHandleSize(( void* )dest, len);
-		}
-		if ( !DSCheckHandle( dest )) {
-			strncpy((*dest)->str, src, len);
-			//optional: memcpy((*dest)->str, src, len);
-			(*dest)->cnt = len;
-		}
-		else {
-			return _OUT_OF_MEMORY;
-		}
-		return 0;
-	}
-	else {
-		return _LSTRHANDLE_IS_NULL;
-	}
+MgErr copyStringToLStrHandle(char* cpString, LStrHandle LVString)
+{
+    int32 len = strlen(cpString);
+    MgErr err = NumericArrayResize(uB, 1, (UHandle*)&LVString, len);
+    if (!err)
+    {
+        strncpy((*LVString)->str, cpString, len); // copying the string into the handle
+        (*LVString)->cnt = len; // telling the Handle what string size to expect
+    }
+    return err;
+}
 
+MgErr copyBufforToLStrHandle(const void* buffor, int len, LStrHandle LVString)
+{
+
+    MgErr err = NumericArrayResize(uB, 1, (UHandle*)&LVString, len);
+    if (!err)
+    {
+        memcpy((*LVString)->str, buffor, len); // copying the string into the handle
+        (*LVString)->cnt = len; // telling the Handle what string size to expect
+    }
+    return err;
 }
 
 LABVIEW_PUBLIC_FUNCTION
@@ -45,24 +43,24 @@ char* lv_rabbitmq_version(void) {
 enhanced with LabVIEW string support.*/
 int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle error_description) {
 	unsigned char temp_str[MAX_ERROR_DESCRIPTION_LENGTH];
-	int cp_status;
+	int err;
 	switch (x.reply_type) {
 		case AMQP_RESPONSE_NORMAL:
 			return _AMQP_RESPONSE_NORMAL;
 
 		case AMQP_RESPONSE_NONE:
 			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: missing RPC reply type!", context);
-			cp_status = lv_strncpy(error_description, temp_str);
-			if (cp_status != 0){
-				return cp_status;
+			err = copyStringToLStrHandle(temp_str, error_description);
+			if (err){
+				return err;
 			}
 			return _AMQP_RESPONSE_NONE;
 
 		case AMQP_RESPONSE_LIBRARY_EXCEPTION:
 			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: %s ", context, amqp_error_string2(x.library_error));
-			cp_status = lv_strncpy(error_description, temp_str);
-			if (cp_status != 0){
-				return cp_status;
+			err = copyStringToLStrHandle(temp_str, error_description);
+			if (err){
+				return err;
 			}
 			return _AMQP_RESPONSE_LIBRARY_EXCEPTION;
 
@@ -74,9 +72,9 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle err
 			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: server connection error %uh, message: %.*s ",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			cp_status = lv_strncpy(error_description, temp_str);
-			if (cp_status != 0){
-				return cp_status;
+			err = copyStringToLStrHandle(temp_str, error_description);
+			if (err){
+				return err;
 			}
 			return  _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
@@ -85,18 +83,18 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char const *context, LStrHandle err
 			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: server channel error %uh, message: %.*s ",
 					context, m->reply_code, (int)m->reply_text.len,
 					(char *)m->reply_text.bytes);
-			cp_status = lv_strncpy(error_description, temp_str);
-			if (cp_status != 0){
-				return cp_status;
+			err = copyStringToLStrHandle(temp_str, error_description);
+			if (err){
+				return err;
 			}
 			return _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 			default:
 			snprintf(temp_str, MAX_ERROR_DESCRIPTION_LENGTH, "%s: unknown server error, method id 0x%08X ",
 					context, x.reply.id);
-			cp_status = lv_strncpy(error_description, temp_str);
-			if (cp_status != 0){
-				return cp_status;
+			err = copyStringToLStrHandle(temp_str, error_description);
+			if (err){
+				return err;
 			}
 			return _AMQP_RESPONSE_SERVER_EXCEPTION;
 		}
@@ -266,7 +264,7 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 	}
 
 	if (envelope.message.body.len > 0) {
-		lv_strncpy(output, envelope.message.body.bytes);
+		copyBufforToLStrHandle(envelope.message.body.bytes, envelope.message.body.len, output);
 	}
 
 	amqp_destroy_envelope(&envelope);
