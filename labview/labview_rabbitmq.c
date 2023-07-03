@@ -1,3 +1,6 @@
+// Copyright 2022, Kwiatkowski Łukasz, Zaphiro Technologies 
+// SPDX-License-Identifier: mit
+
 #include <rabbitmq-c/amqp.h>
 #include <rabbitmq-c/tcp_socket.h>
 #include <amqp_framing.h>
