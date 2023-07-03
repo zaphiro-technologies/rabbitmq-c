@@ -29,7 +29,4 @@ install(TARGETS rabbitmq-lv
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 
-add_executable(lib_test lib_test.c)
-target_link_libraries(lib_test PRIVATE rabbitmq-lv)
-
 include_directories(/usr/local/natinst/LabVIEW-2020-64/cintools)
