@@ -32,6 +32,8 @@ jobs:
       uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
       with:
         target_sync_branch: remote_rabbitmq-c
+        git_config_user: chicco785
+        target_repo_token: ${{ secrets.WORKFLOW_PAT }}
         upstream_sync_branch: master
         upstream_sync_repo: alanxz/rabbitmq-c
       
