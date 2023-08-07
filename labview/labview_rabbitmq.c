@@ -1,6 +1,3 @@
-// Copyright 2022, Kwiatkowski Łukasz, Zaphiro Technologies 
-// SPDX-License-Identifier: mit
-
 #include <rabbitmq-c/amqp.h>
 #include <rabbitmq-c/tcp_socket.h>
 #include <amqp_framing.h>
@@ -25,13 +22,13 @@ MgErr copyStringToLStrHandle(char* cpString, LStrHandle LVString)
     return err;
 }
 
-MgErr copyBufforToLStrHandle(const void* buffor, int len, LStrHandle LVString)
+MgErr copyBufferToLStrHandle(const void* buffer, int len, LStrHandle LVString)
 {
 
     MgErr err = NumericArrayResize(uB, 1, (UHandle*)&LVString, len);
     if (!err)
     {
-        memcpy((*LVString)->str, buffor, len); // copying the string into the handle
+        memcpy((*LVString)->str, buffer, len); // copying the string into the handle
         (*LVString)->cnt = len; // telling the Handle what string size to expect
     }
     return err;
@@ -185,6 +182,7 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
   	} 
 	/*Code explanation:
 	socket is set/stored in the connection state,
+	so we dont need to destroy this socket because
 	it will be destroyed along with connection state destroy function*/ 
 
 	char const *VHOST = "/"; 		// the virtual host to connect to on the broker. The default on most brokers is "/"
@@ -268,7 +266,7 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 	}
 
 	if (envelope.message.body.len > 0) {
-		copyBufforToLStrHandle(envelope.message.body.bytes, envelope.message.body.len, output);
+		copyBufferToLStrHandle(envelope.message.body.bytes, envelope.message.body.len, output);
 	}
 
 	amqp_destroy_envelope(&envelope);
