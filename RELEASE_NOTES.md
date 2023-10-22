@@ -4,6 +4,7 @@
 
 ### Features
 
+- Support message headers (PR #10 by @kwitekrac)
 - LabVIEW support (PR #8 by @kwitekrac)
 
 ### Continuous Integration
