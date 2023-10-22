@@ -44,11 +44,11 @@ int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char* exchan
 
 int lv_amqp_login(int64_t conn_intptr, char* host, int port, int timeout_sec, char* username, char* password, LStrHandle error_description);
 
-int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char* exchange, char* routingkey, char* messagebody, LStrHandle error_description);
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t  channel, char *exchange, char *routingkey, char *cheaders_key, char *cheaders_value, char *messagebody, LStrHandle error_description);
 
 int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, char* exchange, char* bindingkey, LStrHandle error_description);
 
-int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle error_description);
+int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders_key, LStrHandle cheaders_value, LStrHandle error_description);
 
 
 #endif /* LABVIEW_RABBITMQ_H */

@@ -34,6 +34,81 @@ MgErr copyBufferToLStrHandle(const void* buffer, int len, LStrHandle LVString)
     return err;
 }
 
+// Function to split a string into multiple strings based on the ";" separator
+char** splitString(char* input, int* count) {
+    char** tokens = NULL;
+    char* token = strtok(input, ";");
+    *count = 0;
+
+    while (token != NULL) {
+        tokens = (char**)realloc(tokens, ((*count) + 1) * sizeof(char*));
+        if (tokens == NULL) {
+            perror("Memory allocation error");
+            exit(1);
+        }
+        tokens[(*count)] = strdup(token);
+        (*count)++;
+        token = strtok(NULL, ";");
+    }
+
+    return tokens;
+}
+
+void getConcatenatedMessageHeaders(amqp_table_t *table, LStrHandle cheaders_key, LStrHandle cheaders_value) {
+	// Calculate required buffer size for concatenated headers keys and values,
+	// following strings will be separated by ";". Buffer will be finished with Null-terminate the C string.
+	// Init counters with num of elements-1 (number of separators) + 1 ('\0')
+	int required_buffer_size_keys = (table->num_entries-1) +1; 
+	int required_buffer_size_values = (table->num_entries-1) +1;
+	for (int i = 0; i < table->num_entries; i++) {
+		required_buffer_size_keys += table->entries[i].key.len;
+		required_buffer_size_values += table->entries[i].value.value.bytes.len;
+	}
+	// Allocate memory for temp strings
+	char *keys = (char *)malloc(required_buffer_size_keys * sizeof(char));
+	char *values = (char *)malloc(required_buffer_size_values * sizeof(char));
+
+	int keys_offset=0;
+	int values_offset=0;
+	for (int i = 0; i < table->num_entries; i++) {
+		memcpy(keys+keys_offset, table->entries[i].key.bytes, table->entries[i].key.len);
+		keys_offset += table->entries[i].key.len;
+		keys[keys_offset]=';';
+		keys_offset++;
+		memcpy(values+values_offset, table->entries[i].value.value.bytes.bytes, table->entries[i].value.value.bytes.len);
+		values_offset += table->entries[i].value.value.bytes.len;
+		values[values_offset]=';';
+		values_offset++;
+	}
+	// add Null-terminate the C string
+	keys[keys_offset-1]='\0';
+	values[values_offset-1]='\0';
+
+	copyStringToLStrHandle(keys, cheaders_key);
+	copyStringToLStrHandle(values, cheaders_value);
+
+	free(keys);
+	free(values);
+}
+
+char* amqpBytesToString(amqp_bytes_t input) {
+    // Allocate memory for the C string and a null terminator
+    char* result = (char*)malloc(input.len + 1);
+
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+
+    // Copy the data from amqp_bytes_t to the C string
+    memcpy(result, input.bytes, input.len);
+
+    // Null-terminate the C string
+    result[input.len] = '\0';
+
+    return result;
+}
+
 LABVIEW_PUBLIC_FUNCTION
 char* lv_rabbitmq_version(void) {
 	char* VERSION = "0.0.1";
@@ -196,13 +271,43 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
 
 
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t  channel, char *exchange, char *routingkey, char *messagebody, LStrHandle error_description) {
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t  channel, char *exchange, char *routingkey, char *cheaders_key, char *cheaders_value, char *messagebody, LStrHandle error_description) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 	amqp_basic_properties_t props;
 	props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
 	props.content_type = amqp_cstring_bytes("text/plain");
 	props.delivery_mode = 2; /* persistent delivery mode */
-	return amqp_basic_publish(conn, channel, amqp_cstring_bytes(exchange),amqp_cstring_bytes(routingkey), 0, 0, &props, amqp_cstring_bytes(messagebody));
+
+	int count, count2;
+    char** headers_key = splitString(cheaders_key, &count);
+	char** headers_value = splitString(cheaders_value, &count2);
+    if (headers_key != NULL) {
+		// Update flags to use custom headers
+		props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG | AMQP_BASIC_HEADERS_FLAG;
+		// Allocate memory for custom headers
+		amqp_table_t *table=&props.headers;
+    	props.headers.num_entries=count;
+    	props.headers.entries=calloc(props.headers.num_entries, sizeof(amqp_table_entry_t));
+		// update headers content
+        for (int i = 0; i < count; i++) {
+			(table->entries[i]).key=amqp_cstring_bytes(headers_key[i]);
+    		((table->entries[i]).value).kind=AMQP_FIELD_KIND_BYTES;
+    		((table->entries[i]).value).value.bytes=amqp_cstring_bytes(headers_value[i]);
+        }
+	}
+
+	int error_code = error_code = amqp_basic_publish(conn, channel, amqp_cstring_bytes(exchange),amqp_cstring_bytes(routingkey), 0, 0, &props, amqp_cstring_bytes(messagebody));
+
+	// Dereference headers
+	if (headers_key != NULL) {
+        for (int i = 0; i < count; i++) {
+            free(headers_key[i]);
+			free(headers_value[i]);
+        }
+    	free(headers_key);
+		free(headers_value);
+	}
+	return error_code;
 	//this function returns amqp_status_enum thats different from amqp_rpc_reply_t
 }
 
@@ -243,12 +348,13 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, char *exchange,
 	/* amqp_basic_consume is used to register a consumer on the queue,
 	 so that the broker will start delivering messages to it.*/
 	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Basic consume", error_description);
+	amqp_bytes_free(queuename);
     return status;
 }
 
 
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle error_description) {
+int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders_key, LStrHandle cheaders_value, LStrHandle error_description) {
 	amqp_connection_state_t conn = (amqp_connection_state_t)conn_intptr;
 
 	int status;
@@ -267,6 +373,12 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 
 	if (envelope.message.body.len > 0) {
 		copyBufferToLStrHandle(envelope.message.body.bytes, envelope.message.body.len, output);
+	}
+
+	// Check message headers
+	amqp_table_t *headers = &envelope.message.properties.headers;
+	if (headers->num_entries > 0) {
+		getConcatenatedMessageHeaders(headers, cheaders_key, cheaders_value);
 	}
 
 	amqp_destroy_envelope(&envelope);
