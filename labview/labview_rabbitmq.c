@@ -9,7 +9,6 @@
 #include <sys/time.h>
 #include <stdio.h>
 
-
 MgErr copyStringToLStrHandle(char *cpString, LStrHandle LVString)
 {
 	int32 len = strlen(cpString);
@@ -32,12 +31,6 @@ MgErr copyBufferToLStrHandle(const void *buffer, int len, LStrHandle LVString)
 		(*LVString)->cnt = len;	// telling the Handle what string size to expect
 	}
 
-																	
-			 
-	 
-																					
-																				
-	 
 	return err;
 }
 
@@ -55,10 +48,6 @@ char **splitString(char *input, int *count)
 		{
 			perror("Memory allocation error");
 			exit(1);
-		 
-										 
-				   
-								  
 		}
 
 		tokens[(*count)] = strdup(token);
@@ -69,78 +58,80 @@ char **splitString(char *input, int *count)
 	return tokens;
 }
 
-void getConcatenatedMessageHeaders(amqp_table_t *table, LStrHandle cheaders_key, LStrHandle cheaders_value)
+void getConcatenatedMessageHeaders(amqp_table_t *table, LStrHandle cheaders)
 {
-	// Calculate required buffer size for concatenated headers keys and values,
-	// following strings will be separated by ";". Buffer will be finished with Null-terminate the C string.
-	// Init counters with num of elements-1 (number of separators) + 1 ('\0')
-	int required_buffer_size_keys = (table->num_entries - 1) + 1;
-	int required_buffer_size_values = (table->num_entries - 1) + 1;
+	// Calculate required buffer size for concatenated headers keys and values separated by "=",
+	// following headers will be separated by ";". Buffer will be finished with Null-terminate the C string.
+	int required_buffer_size = 0;
 	for (int i = 0; i < table->num_entries; i++)
 	{
-		required_buffer_size_keys += table->entries[i].key.len;
-		switch (table->entries[i].value.kind) {
+		required_buffer_size++;	// character that indicates a type
+		required_buffer_size += table->entries[i].key.len;	//key
+		required_buffer_size++;	//'='separator
+		switch (table->entries[i].value.kind)
+		{
 			case AMQP_FIELD_KIND_I8:
-				required_buffer_size_values += 1;
+				required_buffer_size += 1;
 				break;
 			case AMQP_FIELD_KIND_I64:
-				required_buffer_size_values += 8;
+				required_buffer_size += 8;
 				break;
 			case AMQP_FIELD_KIND_UTF8:
-				required_buffer_size_values += table->entries[i].value.value.bytes.len;
+				required_buffer_size += table->entries[i].value.value.bytes.len;
 				break;
 			default:
-				required_buffer_size_values += 0;
+				required_buffer_size += 0;
 				break;
 		}
+
+		required_buffer_size++;	//';'separator or Null-terminate
 	}
 
-	// Allocate memory for temp strings
-	char *keys = (char*) malloc(required_buffer_size_keys* sizeof(char));
-	char *values = (char*) malloc(required_buffer_size_values* sizeof(char));
+	// Allocate memory for temp buffer
+	char *headers = (char*) malloc(required_buffer_size* sizeof(char));
 
 	char *byteArray;
-	int keys_offset = 0;
-	int values_offset = 0;
+	int index = 0;
 	for (int i = 0; i < table->num_entries; i++)
 	{
-		memcpy(keys + keys_offset, table->entries[i].key.bytes, table->entries[i].key.len);
-		keys_offset += table->entries[i].key.len;
-		keys[keys_offset] = ';';
-		keys_offset++;
-		
-		switch (table->entries[i].value.kind) {
+		headers[index] = table->entries[i].value.kind;	// character that indicates a type
+		index++;
+
+		memcpy(headers + index, table->entries[i].key.bytes, table->entries[i].key.len);
+		index += table->entries[i].key.len;
+		headers[index] = '=';
+		index++;
+
+		switch (table->entries[i].value.kind)
+		{
 			case AMQP_FIELD_KIND_I8:
-				values[values_offset]=table->entries[i].value.value.i8; //check if not zero!
-				values_offset++;
+				headers[index] = table->entries[i].value.value.i8;	
+				index++;
 				break;
 			case AMQP_FIELD_KIND_I64:
-				byteArray=&(table->entries[i].value.value.i64);
-				memcpy(values + values_offset, byteArray, 8);
-				values_offset+=8;
+				for (int j = 0; j < 8; j++)
+				{
+					headers[index + j] = (table->entries[i].value.value.i64 >> (j *8)) &0xFF;
+				}
+
+				index += 8;
 				break;
 			case AMQP_FIELD_KIND_UTF8:
-				memcpy(values + values_offset, table->entries[i].value.value.bytes.bytes, table->entries[i].value.value.bytes.len);
-				values_offset+=table->entries[i].value.value.bytes.len;
+				memcpy(headers + index, table->entries[i].value.value.bytes.bytes, table->entries[i].value.value.bytes.len);
+				index += table->entries[i].value.value.bytes.len;
 				break;
 			default:
-				required_buffer_size_values += 0;
 				break;
 		}
-		values[values_offset] = ';';
-		values_offset++;
+
+		headers[index] = ';';
+		index++;
 	}
 
-	// add Null-terminate the C string
-	keys[keys_offset - 1] = '\0';
-	values[values_offset -1] = '\0';
-
-	copyStringToLStrHandle(keys, cheaders_key);
-	//copyStringToLStrHandle(values, cheaders_value);
-	copyBufferToLStrHandle(values, required_buffer_size_values, cheaders_value);
-
-	free(keys);
-	free(values);
+	// replace last ';' with Null-terminate the C string
+	headers[index - 1] = '\0';
+	copyBufferToLStrHandle(headers, required_buffer_size, cheaders);
+	free(headers);
 }
 
 char *amqpBytesToString(amqp_bytes_t input)
@@ -248,11 +239,9 @@ int lv_report_amqp_error(amqp_rpc_reply_t x, char
 					return _AMQP_RESPONSE_SERVER_EXCEPTION;
 			}
 
-   
 			break;
 	}
 }
-
 
 LABVIEW_PUBLIC_FUNCTION
 int64_t lv_amqp_new_connection()
@@ -265,7 +254,6 @@ int64_t lv_amqp_new_connection()
 	return conn_intptr;
 }
 
-
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_close_connection(int64_t conn_intptr, LStrHandle error_description)
 {
@@ -274,14 +262,12 @@ int lv_amqp_close_connection(int64_t conn_intptr, LStrHandle error_description)
 	return lv_report_amqp_error(amqp_connection_close(conn, AMQP_REPLY_SUCCESS), "Connection close", error_description);
 }
 
-
 LABVIEW_PUBLIC_FUNCTION
 void lv_amqp_destroy_connection(int64_t conn_intptr)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 	amqp_destroy_connection(conn);
 }
-
 
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_channel_open(int64_t conn_intptr, uint16_t channel, LStrHandle error_description)
@@ -291,14 +277,12 @@ int lv_amqp_channel_open(int64_t conn_intptr, uint16_t channel, LStrHandle error
 	return lv_report_amqp_error(amqp_get_rpc_reply(conn), "Opening channel", error_description);
 }
 
-
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_channel_close(int64_t conn_intptr, uint16_t channel, LStrHandle error_description)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 	return lv_report_amqp_error(amqp_channel_close(conn, channel, AMQP_REPLY_SUCCESS), "Closing channel", error_description);
 }
-
 
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char *exchange, char *exchangetype, LStrHandle error_description)
@@ -315,7 +299,6 @@ int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char *exchan
 
 	return lv_report_amqp_error(amqp_get_rpc_reply(conn), "Exchange declare", error_description);
 }
-
 
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, char *username, char *password, LStrHandle error_description)
@@ -357,7 +340,6 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
 
 	return lv_report_amqp_error(amqp_login(conn, VHOST, CHANNEL_MAX, FRAME_MAX, HEARTBEAT, AMQP_SASL_METHOD_PLAIN, username, password), "Logging in", error_description);
 }
-
 
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingkey, char *cheaders_key, char *cheaders_value, char *messagebody, LStrHandle error_description)
@@ -406,7 +388,6 @@ int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange,
 	//this function returns amqp_status_enum thats different from amqp_rpc_reply_t
 }
 
-
 LABVIEW_PUBLIC_FUNCTION
 int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, LStrHandle queue_name_out, LStrHandle error_description)
 {
@@ -448,9 +429,8 @@ int lv_amqp_bind_queue(int64_t conn_intptr, uint16_t channel, char *exchange, ch
 	return status;
 }
 
-
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders_key, LStrHandle cheaders_value, LStrHandle error_description)
+int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders, LStrHandle error_description)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 
@@ -478,10 +458,9 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 	amqp_table_t *headers = &envelope.message.properties.headers;
 	if (headers->num_entries > 0)
 	{
-		getConcatenatedMessageHeaders(headers, cheaders_key, cheaders_value);
+		getConcatenatedMessageHeaders(headers, cheaders);
 	}
 
 	amqp_destroy_envelope(&envelope);
 	return status;
 }
-

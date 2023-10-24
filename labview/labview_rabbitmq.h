@@ -50,7 +50,7 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, LStrHandle queu
 
 int lv_amqp_bind_queue(int64_t conn_intptr, uint16_t  channel, char *exchange, char *queuename, char *bindingkey, LStrHandle error_description);
 
-int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders_key, LStrHandle cheaders_value, LStrHandle error_description);
+int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders, LStrHandle error_description);
 
 
 #endif /* LABVIEW_RABBITMQ_H */
