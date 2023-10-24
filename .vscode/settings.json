@@ -13,6 +13,10 @@
         "chrono": "c",
         "algorithm": "c",
         "sstream": "c",
-        "random": "c"
+        "random": "c",
+        "*.tcc": "c",
+        "memory_resource": "c",
+        "fstream": "c",
+        "memory": "c"
     }
 }

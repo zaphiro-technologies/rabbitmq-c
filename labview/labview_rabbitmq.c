@@ -79,13 +79,27 @@ void getConcatenatedMessageHeaders(amqp_table_t *table, LStrHandle cheaders_key,
 	for (int i = 0; i < table->num_entries; i++)
 	{
 		required_buffer_size_keys += table->entries[i].key.len;
-		required_buffer_size_values += table->entries[i].value.value.bytes.len;
+		switch (table->entries[i].value.kind) {
+			case AMQP_FIELD_KIND_I8:
+				required_buffer_size_values += 1;
+				break;
+			case AMQP_FIELD_KIND_I64:
+				required_buffer_size_values += 8;
+				break;
+			case AMQP_FIELD_KIND_UTF8:
+				required_buffer_size_values += table->entries[i].value.value.bytes.len;
+				break;
+			default:
+				required_buffer_size_values += 0;
+				break;
+		}
 	}
 
 	// Allocate memory for temp strings
 	char *keys = (char*) malloc(required_buffer_size_keys* sizeof(char));
 	char *values = (char*) malloc(required_buffer_size_values* sizeof(char));
 
+	char *byteArray;
 	int keys_offset = 0;
 	int values_offset = 0;
 	for (int i = 0; i < table->num_entries; i++)
@@ -94,18 +108,36 @@ void getConcatenatedMessageHeaders(amqp_table_t *table, LStrHandle cheaders_key,
 		keys_offset += table->entries[i].key.len;
 		keys[keys_offset] = ';';
 		keys_offset++;
-		memcpy(values + values_offset, table->entries[i].value.value.bytes.bytes, table->entries[i].value.value.bytes.len);
-		values_offset += table->entries[i].value.value.bytes.len;
+		
+		switch (table->entries[i].value.kind) {
+			case AMQP_FIELD_KIND_I8:
+				values[values_offset]=table->entries[i].value.value.i8; //check if not zero!
+				values_offset++;
+				break;
+			case AMQP_FIELD_KIND_I64:
+				byteArray=&(table->entries[i].value.value.i64);
+				memcpy(values + values_offset, byteArray, 8);
+				values_offset+=8;
+				break;
+			case AMQP_FIELD_KIND_UTF8:
+				memcpy(values + values_offset, table->entries[i].value.value.bytes.bytes, table->entries[i].value.value.bytes.len);
+				values_offset+=table->entries[i].value.value.bytes.len;
+				break;
+			default:
+				required_buffer_size_values += 0;
+				break;
+		}
 		values[values_offset] = ';';
 		values_offset++;
 	}
 
 	// add Null-terminate the C string
 	keys[keys_offset - 1] = '\0';
-	values[values_offset - 1] = '\0';
+	values[values_offset -1] = '\0';
 
 	copyStringToLStrHandle(keys, cheaders_key);
-	copyStringToLStrHandle(values, cheaders_value);
+	//copyStringToLStrHandle(values, cheaders_value);
+	copyBufferToLStrHandle(values, required_buffer_size_values, cheaders_value);
 
 	free(keys);
 	free(values);
