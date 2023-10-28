@@ -44,7 +44,7 @@ int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char* exchan
 
 int lv_amqp_login(int64_t conn_intptr, char* host, int port, int timeout_sec, char* username, char* password, LStrHandle error_description);
 
-int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t  channel, char *exchange, char *routingkey, char *cheaders_key, char *cheaders_value, char *messagebody, LStrHandle error_description);
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingkey, uint8_t* headerBuffer, uint64_t headerBufferLen, char *messagebody, LStrHandle error_description);
 
 int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, LStrHandle queue_name_out, LStrHandle error_description);
 
