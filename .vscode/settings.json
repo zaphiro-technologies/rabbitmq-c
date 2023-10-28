@@ -17,6 +17,7 @@
         "*.tcc": "c",
         "memory_resource": "c",
         "fstream": "c",
-        "memory": "c"
+        "memory": "c",
+        "labview_types.h": "c"
     }
 }

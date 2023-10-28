@@ -3,6 +3,8 @@
 
 set(RABBITMQ_LV_SOURCES
   labview_rabbitmq.c 
+  labview_types.c labview_types.h
+  msg_headers.c msg_headers.h
 	utils.c utils.h
   unix/platform_utils.c
 )
