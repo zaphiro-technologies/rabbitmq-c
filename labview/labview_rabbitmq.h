@@ -40,13 +40,13 @@ int lv_amqp_channel_open(int64_t conn_intptr, uint16_t channel, LStrHandle error
 
 int lv_amqp_channel_close(int64_t conn_intptr, uint16_t channel, LStrHandle error_description);
 
-int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char* exchange, char* exchangetype, LStrHandle error_description);
+int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char *exchange, char *exchangetype, uint8_t passive, LStrHandle errorDescription);
 
 int lv_amqp_login(int64_t conn_intptr, char* host, int port, int timeout_sec, char* username, char* password, LStrHandle error_description);
 
 int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingkey, uint8_t* headerBuffer, uint64_t headerBufferLen, char *messagebody, LStrHandle error_description);
 
-int lv_amqp_create_queue(int64_t conn_intptr, uint16_t  channel, LStrHandle queue_name_out, LStrHandle error_description);
+int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, char* queue_name_in, LStrHandle queue_name_out, uint8_t passive, LStrHandle errorDescription);
 
 int lv_amqp_bind_queue(int64_t conn_intptr, uint16_t  channel, char *exchange, char *queuename, char *bindingkey, LStrHandle error_description);
 
