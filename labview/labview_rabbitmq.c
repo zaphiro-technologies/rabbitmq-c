@@ -61,11 +61,11 @@ int lv_amqp_channel_close(int64_t conn_intptr, uint16_t channel, LStrHandle erro
 }
 
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char *exchange, char *exchangetype, LStrHandle errorDescription)
+int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char *exchange, char *exchangetype, uint8_t passive, LStrHandle errorDescription)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 
-	amqp_boolean_t PASSIVE = 0;
+	amqp_boolean_t PASSIVE = passive;
 	amqp_boolean_t DURABLE = 0;
 	amqp_boolean_t AUTO_DELETE = 0;
 	amqp_boolean_t INTERNAL = 0;
@@ -117,20 +117,28 @@ int lv_amqp_login(int64_t conn_intptr, char *host, int port, int timeout_sec, ch
 }
 
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, LStrHandle queue_name_out, LStrHandle errorDescription)
+int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, char* queue_name_in, LStrHandle queue_name_out, uint8_t passive, LStrHandle errorDescription)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 	int status;
 	amqp_bytes_t queuename;
 
-	amqp_boolean_t PASSIVE = 0;
+	if (queue_name_in!=NULL){
+		queuename = amqp_cstring_bytes(queue_name_in);
+	} else {
+		queuename = amqp_empty_bytes;
+	}
+
+	amqp_boolean_t PASSIVE = 1;
 	amqp_boolean_t DURABLE = 0;
 	amqp_boolean_t EXCLUSIVE = 0;
 	amqp_boolean_t AUTO_DELETE = 1;
-	amqp_queue_declare_ok_t *r = amqp_queue_declare(conn, channel, amqp_empty_bytes, PASSIVE, DURABLE, EXCLUSIVE, AUTO_DELETE, amqp_empty_table);
+	amqp_queue_declare_ok_t *r = amqp_queue_declare(conn, channel, queuename, PASSIVE, DURABLE, EXCLUSIVE, AUTO_DELETE, amqp_empty_table);
 
 	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Declaring queue", errorDescription);
-	copyBufferToLStrHandle(r->queue.bytes, r->queue.len, queue_name_out);
+	if (status==1){
+		copyBufferToLStrHandle(r->queue.bytes, r->queue.len, queue_name_out);
+	}
 	return status;
 }
 
