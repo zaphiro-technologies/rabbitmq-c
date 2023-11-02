@@ -129,7 +129,7 @@ int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, char* queue_name
 		queuename = amqp_empty_bytes;
 	}
 
-	amqp_boolean_t PASSIVE = 1;
+	amqp_boolean_t PASSIVE = passive;
 	amqp_boolean_t DURABLE = 0;
 	amqp_boolean_t EXCLUSIVE = 0;
 	amqp_boolean_t AUTO_DELETE = 1;
