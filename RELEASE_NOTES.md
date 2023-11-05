@@ -1,9 +1,10 @@
 # rabbitmq-c Release Notes
 
-## 0.0.1-dev - 2023-08-07
+## 0.0.1-dev - 2023-11-05
 
 ### Features
 
+- Support message headers (PR #10 by @kwitekrac)
 - LabVIEW support (PR #8 by @kwitekrac)
 
 ### Continuous Integration
