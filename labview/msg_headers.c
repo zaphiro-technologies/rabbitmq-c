@@ -174,7 +174,7 @@ void headersToString(amqp_table_t* table, LStrHandle concatenatedHeaders) {
         break;
     }
 
-    required_buffer_size++;  // ';' separator or Null-terminate
+    required_buffer_size++;  // ';' separator 
   }
 
   // Allocate memory for temp buffer
@@ -258,9 +258,6 @@ void headersToString(amqp_table_t* table, LStrHandle concatenatedHeaders) {
     headers[index] = ';';  // Separator
     index++;
   }
-
-  // Replace the last ';' with Null-terminate the C string
-  //headers[index - 1] = '\0';
 
   // Copy the resulting string to the LStrHandle
   copyBufferToLStrHandle(headers, required_buffer_size, concatenatedHeaders);

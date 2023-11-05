@@ -28,7 +28,7 @@ char* findInBuffer(const uint8_t* headerBuffer, uint32_t headerBufferLen, uint32
  * Memory is allocated for the token array, and the caller is responsible for
  * freeing the memory when it's no longer needed.
  */
-char **splitString(char *input, int *count);
+char **splitString(char *input, int *count, char delimiter);
 
 /**
  * This function frees the memory allocated for an array of tokens created by
