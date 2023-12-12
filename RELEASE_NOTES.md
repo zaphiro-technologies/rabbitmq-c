@@ -1,6 +1,6 @@
 # rabbitmq-c Release Notes
 
-## 0.0.1-dev - 2023-11-09
+## 0.0.1-dev - 2023-12-12
 
 ### Features
 
