@@ -14,6 +14,9 @@
  *       The function modifies the `table` structure in place with the parsed
  * entries.
  */
+
+const int MAX_HEADER_VALUE_LENGTH=64; // limits strings length sends as header value 
+
 void stringToHeaders(amqp_table_t* table, const uint8_t* headerBuffer,
                      uint64_t headerBufferLen) {
   amqp_table_entry_t* entries = NULL;
@@ -57,7 +60,7 @@ void stringToHeaders(amqp_table_t* table, const uint8_t* headerBuffer,
       entries[numEntries].key.len = equal_char - ((char*)headerBuffer + index);
 
       // Init and parse the value
-      char valueTempBuffer[8];
+      char valueTempBuffer[MAX_HEADER_VALUE_LENGTH];
       int valueLength = delimiter - equal_char - 1;
       memcpy(valueTempBuffer, equal_char + 1, valueLength);
 

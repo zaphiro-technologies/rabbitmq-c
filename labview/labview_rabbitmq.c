@@ -202,13 +202,17 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 }
 
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingKey, uint8_t* msgHeaderBuf, uint64_t msgHeaderBufLen, char *messageBody, LStrHandle errorDescription)
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingKey, uint8_t* msgHeaderBuf, uint64_t msgHeaderBufLen, LStrHandle messageBody, LStrHandle errorDescription)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 	amqp_basic_properties_t props;
 	props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
 	props.content_type = amqp_cstring_bytes("text/plain");
 	props.delivery_mode = 2; /*persistent delivery mode */
+	
+	amqp_bytes_t messageBodyBuffer;
+  	messageBodyBuffer.len = (*messageBody)->cnt;
+  	messageBodyBuffer.bytes = (void *)((*messageBody)->str);
 
 
 	amqp_table_t *table;
@@ -220,7 +224,7 @@ int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange,
 		stringToHeaders(table, msgHeaderBuf, msgHeaderBufLen);
 	}
 
-	int error_code = amqp_basic_publish(conn, channel, amqp_cstring_bytes(exchange), amqp_cstring_bytes(routingKey), 0, 0, &props, amqp_cstring_bytes(messageBody));
+	int error_code = amqp_basic_publish(conn, channel, amqp_cstring_bytes(exchange), amqp_cstring_bytes(routingKey), 0, 0, &props, messageBodyBuffer);
 
 	// Free allocated headers
 	if (msgHeaderBufLen > 0)
