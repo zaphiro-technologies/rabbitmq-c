@@ -48,6 +48,8 @@ int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange,
 
 int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, char* queue_name_in, LStrHandle queue_name_out, uint8_t passive, LStrHandle errorDescription);
 
+int lv_amqp_basic_consume(int64_t conn_intptr, uint16_t channel, char *queuename, LStrHandle errorDescription);
+
 int lv_amqp_bind_queue(int64_t conn_intptr, uint16_t  channel, char *exchange, char *queuename, char *bindingkey, LStrHandle error_description);
 
 int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle output, LStrHandle cheaders, LStrHandle error_description);
