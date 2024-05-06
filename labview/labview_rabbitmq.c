@@ -165,9 +165,9 @@ int lv_amqp_basic_consume(int64_t conn_intptr, uint16_t channel, char *queuename
 	amqp_boolean_t EXCLUSIVE = 0;
 	amqp_boolean_t AUTO_DELETE = 1;
 	amqp_queue_declare_ok_t *r = amqp_queue_declare(conn, channel, amqp_cstring_bytes(queuename), PASSIVE, DURABLE, EXCLUSIVE, AUTO_DELETE, amqp_empty_table);
+	status = lv_report_amqp_error(amqp_get_rpc_reply(conn), "Checking queue", errorDescription);
 	if (status != 1)
 	{
-		copyStringToLStrHandle("Queue does not exists ", errorDescription);
 		return status;
 	}
 
@@ -193,7 +193,7 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 	amqp_rpc_reply_t res;
 	amqp_envelope_t envelope;
 
-	//amqp_maybe_release_buffers(conn);
+	amqp_maybe_release_buffers(conn);
 
 	status = lv_report_amqp_error(amqp_consume_message(conn, &envelope, &tval, 0), "Consuming message", errorDescription);
 	if (status != 1)
