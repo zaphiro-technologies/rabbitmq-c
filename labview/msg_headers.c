@@ -1,124 +1,9 @@
 #include <rabbitmq-c/amqp.h>
+#include <stdlib.h>
 
 #include "extcode.h"
 #include "labview_types.h"
 
-/**
- * This function parses a string representation of headers and populates an AMQP
- * table with the parsed header entries. The headers in the string are expected
- * to be in a specific format where key-value pairs are separated by '=' and
- * multiple headers are separated by ';'.
- *
- * @note The `table` parameter should be a initialized `amqp_table_t` structure.
- *       The `headerBuffer` should point to a null-terminated C string.
- *       The function modifies the `table` structure in place with the parsed
- * entries.
- */
-
-const int MAX_HEADER_VALUE_LENGTH=64; // limits strings length sends as header value 
-
-void stringToHeaders(amqp_table_t* table, const uint8_t* headerBuffer,
-                     uint64_t headerBufferLen) {
-  amqp_table_entry_t* entries = NULL;
-  int numEntries = 0;
-  int finished = FALSE;
-  int index = 0;
-
-  while (finished == 0) {
-    // Find the delimiter ';'
-    char* delimiter = findInBuffer(headerBuffer, headerBufferLen, index, 0x3B);
-    if (delimiter == NULL) {
-      delimiter =
-          headerBuffer +
-          headerBufferLen;  // If no delimiter found, use the end of the string
-    }
-    if (delimiter == headerBuffer + headerBufferLen) {
-      finished = TRUE;
-    }
-    // Find the equal_char '='
-    char* equal_char = findInBuffer(headerBuffer, headerBufferLen, index, 0x3D);
-
-    if (equal_char != NULL && equal_char < delimiter) {
-      // Add the entry to the entries array
-      amqp_table_entry_t* newEntries =
-          realloc(entries, (numEntries + 1) * sizeof(amqp_table_entry_t));
-      if (newEntries == NULL) {
-        // Error handling for memory allocation failure
-        perror("Memory allocation failed");
-        free(entries);
-        return table;
-      }
-      entries = newEntries;
-      amqp_field_value_t value;
-
-      // Get the kind (first byte)
-      value.kind = headerBuffer[index];
-      index++;  // Move to the next character
-
-      // Parse the key
-      entries[numEntries].key.bytes = headerBuffer + index;
-      entries[numEntries].key.len = equal_char - ((char*)headerBuffer + index);
-
-      // Init and parse the value
-      char valueTempBuffer[MAX_HEADER_VALUE_LENGTH];
-      int valueLength = delimiter - equal_char - 1;
-      memcpy(valueTempBuffer, equal_char + 1, valueLength);
-
-      // Parse the value based on the kind
-      switch (value.kind) {
-        case AMQP_FIELD_KIND_UTF8:
-        case AMQP_FIELD_KIND_BYTES:
-          value.value.bytes.bytes = equal_char + 1;  // fist char after "="
-          value.value.bytes.len = valueLength;
-          break;
-        case AMQP_FIELD_KIND_I8:
-          value.value.i8 = (int8_t)valueTempBuffer[0];
-          break;
-        case AMQP_FIELD_KIND_U8:
-          value.value.u8 = (uint8_t)valueTempBuffer[0];
-          break;
-        case AMQP_FIELD_KIND_I16:
-          value.value.i16 = *((int16_t*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_U16:
-          value.value.u16 = *((uint16_t*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_I32:
-          value.value.i32 = *((int32_t*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_U32:
-          value.value.u32 = *((uint32_t*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_I64:
-          value.value.i64 = *((int64_t*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_U64:
-        case AMQP_FIELD_KIND_TIMESTAMP:
-          value.value.u64 = *((uint64_t*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_F32:
-          value.value.f32 = *((float*)valueTempBuffer);
-          break;
-        case AMQP_FIELD_KIND_F64:
-          value.value.f64 = *((double*)valueTempBuffer);
-          break;
-        default:
-          // Unsupported kind, ignore this header
-          break;
-      }
-
-      entries[numEntries].value = value;
-      numEntries++;
-    }
-
-    // Move to the next header (skip the delimiter ';')
-    index = delimiter - (char*)headerBuffer + 1;
-  }
-
-  // Assign the entries to the table
-  table->num_entries = numEntries;
-  table->entries = entries;
-}
 
 /**
  * This function takes an AMQP table containing headers and converts them into
@@ -267,4 +152,84 @@ void headersToString(amqp_table_t* table, LStrHandle concatenatedHeaders) {
 
   // Free the temporary buffer
   free(headers);
+}
+
+
+amqp_field_value_t createFieldValue(int32_t dataType, LStrHandle value)
+{
+  amqp_field_value_t fieldValue;
+  fieldValue.kind = dataType;
+
+  switch (fieldValue.kind) {
+        case AMQP_FIELD_KIND_UTF8:
+        case AMQP_FIELD_KIND_BYTES:
+          fieldValue.value.bytes.bytes = (void *)(*value)->str;
+          fieldValue.value.bytes.len = (*value)->cnt;
+          break;
+        case AMQP_FIELD_KIND_I8:
+          fieldValue.value.i8 = *((int8_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_U8:
+          fieldValue.value.u8 = *((uint8_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_I16:
+          fieldValue.value.i16 = *((int16_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_U16:
+          fieldValue.value.u16 = *((uint16_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_I32:
+          fieldValue.value.i32 = *((int32_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_U32:
+          fieldValue.value.u32 = *((uint32_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_I64:
+          fieldValue.value.i64 = *((int64_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_U64:
+        case AMQP_FIELD_KIND_TIMESTAMP:
+          fieldValue.value.u64 = *((uint64_t*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_F32:
+          fieldValue.value.f32 = *((float*)(*value)->str);
+          break;
+        case AMQP_FIELD_KIND_F64:
+          fieldValue.value.f64 = *((double*)(*value)->str);
+          break;
+        default:
+          // Unsupported kind, ignore this header
+          break;
+  }
+  return fieldValue;
+}
+
+/**
+ * This function parses a C representation of array of clusters and populates an AMQP
+ * table with the parsed header entries. 
+ *
+ * @note The `table` parameter should be a initialized `amqp_table_t` structure.
+ *       The `KeyValuePairArrHdl` should be a handler to C structure generated by LabVIEW.
+ *       The function modifies the `table` structure in place with the parsed entries.
+ */
+void buildHeaders(amqp_table_t* table, KeyValuePairArrHdl headers)
+{
+  amqp_table_entry_t* entries = malloc(sizeof(amqp_table_entry_t) * (*headers)->dimSize);
+
+  int32_t i = 0;
+  KeyValuePairRec *p = (*headers)->elt;
+	for (; i < (*headers)->dimSize; i++, p++)
+  {
+    amqp_field_value_t value;
+    LStrPtr keyPtr = *p->key;
+
+    entries[i].key.bytes = (void *)keyPtr->str;
+    entries[i].key.len = keyPtr->cnt;
+    entries[i].value = createFieldValue(p->dataType, p->value);
+  }
+
+		// Set the entries to the headers table
+  table -> entries = entries;
+  table -> num_entries = (*headers)->dimSize;
+  
 }

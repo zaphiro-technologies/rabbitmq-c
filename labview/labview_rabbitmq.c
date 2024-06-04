@@ -218,7 +218,7 @@ int lv_amqp_consume_message(int64_t conn_intptr, int timeout_sec, LStrHandle out
 }
 
 LABVIEW_PUBLIC_FUNCTION
-int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingKey, uint8_t* msgHeaderBuf, uint64_t msgHeaderBufLen, LStrHandle messageBody, LStrHandle errorDescription)
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingKey, KeyValuePairArrHdl headers,  LStrHandle messageBody, LStrHandle errorDescription)
 {
 	amqp_connection_state_t conn = (amqp_connection_state_t) conn_intptr;
 	amqp_basic_properties_t props;
@@ -230,22 +230,21 @@ int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange,
   	messageBodyBuffer.len = (*messageBody)->cnt;
   	messageBodyBuffer.bytes = (void *)((*messageBody)->str);
 
-
-	amqp_table_t *table;
-	if (msgHeaderBufLen > 0)
+	if ((*headers)->dimSize > 0)
 	{
 		// Update flags to use custom headers
-		props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG | AMQP_BASIC_HEADERS_FLAG;
-		table = &props.headers;
-		stringToHeaders(table, msgHeaderBuf, msgHeaderBufLen);
+		props._flags |= AMQP_BASIC_HEADERS_FLAG;
+
+		amqp_table_t *table = &props.headers;
+		buildHeaders(table, headers);
 	}
 
 	int error_code = amqp_basic_publish(conn, channel, amqp_cstring_bytes(exchange), amqp_cstring_bytes(routingKey), 0, 0, &props, messageBodyBuffer);
 
-	// Free allocated headers
-	if (msgHeaderBufLen > 0)
+	//Free allocated headers
+	if ((*headers)->dimSize > 0)
 	{
-		free(table->entries);	
+		free(props.headers.entries);	
 	}
 
 	return error_code;

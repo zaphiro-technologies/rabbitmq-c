@@ -1,3 +1,5 @@
+#include "labview_types.h"
+
 #ifndef LABVIEW_RABBITMQ_H
 #define LABVIEW_RABBITMQ_H
 
@@ -44,7 +46,7 @@ int lv_amqp_exchange_declare(int64_t conn_intptr, uint16_t channel, char *exchan
 
 int lv_amqp_login(int64_t conn_intptr, char* host, int port, int timeout_sec, char* username, char* password, LStrHandle error_description);
 
-int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingkey, uint8_t* headerBuffer, uint64_t headerBufferLen, LStrHandle messagebody, LStrHandle error_description);
+int lv_amqp_basic_publish(int64_t conn_intptr, uint16_t channel, char *exchange, char *routingKey, KeyValuePairArrHdl headers, LStrHandle messageBody, LStrHandle errorDescription);
 
 int lv_amqp_create_queue(int64_t conn_intptr, uint16_t channel, char* queue_name_in, LStrHandle queue_name_out, uint8_t passive, LStrHandle errorDescription);
 

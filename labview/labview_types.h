@@ -4,6 +4,26 @@
 #define LABVIEW_TYPES_H
 
 /**
+ * Structure that represents LabVIEW Cluster (items: string key, string value, int32 dataType)
+ */
+typedef struct {
+	LStrHandle key;
+	LStrHandle value;
+    int32_t dataType;
+} KeyValuePairRec;
+/**
+ * Structure that represents LabVIEW Cluster Array
+*/
+typedef struct {
+	int32_t dimSize;
+	KeyValuePairRec elt[1];
+} KeyValuePairArr;
+/**
+ * Handle to LabVIEW Cluster Array, used to pass it between LabVIEW and C
+*/
+typedef KeyValuePairArr **KeyValuePairArrHdl;
+
+/**
  * This function copies the contents of a C string into a LabVIEW LStrHandle,
  * resizing the handle if necessary.
  */
