@@ -1,5 +1,6 @@
 #include <rabbitmq-c/amqp.h>
 #include "extcode.h"
+#include "labview_types.h"
 
 #ifndef MSG_HEADERS_H
 #define MSG_HEADERS_H
@@ -10,7 +11,7 @@
  * Key-value pairs are separated by '=' and multiple headers are separated by
  * ';'.
  */
-void parseHeaders(amqp_table_t* table, const uint8_t* headerBuffer, uint64_t headerBufferLen);
+void headersToString(amqp_table_t *table, LStrHandle concatenatedHeaders);
 
 /**
  * This function parses a string representation of headers and populates an AMQP
@@ -23,6 +24,6 @@ void parseHeaders(amqp_table_t* table, const uint8_t* headerBuffer, uint64_t hea
  *       The function modifies the `table` structure in place with the parsed
  * entries.
  */
-void headersToString(amqp_table_t *table, LStrHandle concatenatedHeaders);
+void buildHeaders(amqp_table_t* table, KeyValuePairArrHdl headers);
 
 #endif
