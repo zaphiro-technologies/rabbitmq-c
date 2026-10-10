@@ -1,3 +1,7 @@
+> [!WARNING]
+>
+> This repository is deprecated. LabVIEW runtime is not used anymore.
+
 # RabbitMQ C AMQP client library
 
 ![Build Status](https://github.com/alanxz/rabbitmq-c/actions/workflows/ci.yml/badge.svg)
